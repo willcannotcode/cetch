@@ -17,6 +17,14 @@ Most fetch tools show a huge logo and pretty verbose information, which looks gr
 
 ## Install
 
+On Arch (or anything with an AUR helper):
+
+```sh
+yay -S cetch
+```
+
+Otherwise, grab the script directly:
+
 ```sh
 curl -o cetch.sh https://raw.githubusercontent.com/willcannotcode/cetch/main/cetch.sh
 chmod +x cetch.sh
@@ -65,3 +73,7 @@ Arch, CachyOS, Debian, Ubuntu, Fedora, Gentoo, and Mint get their own logo.
 Anything else falls back to a generic Tux(ish) face colored from
 `/etc/os-release`'s `ANSI_COLOR`, so it still looks reasonable on distros
 that I haven't hardcoded.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
