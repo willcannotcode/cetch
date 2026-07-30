@@ -17,9 +17,12 @@ Most fetch tools show a huge logo and pretty verbose information, which looks gr
 
 ## Install
 
-~~On Arch (or anything with an AUR helper):~~
+On Arch (or anything with an AUR helper):
 
-SOON
+```
+yay -Sy
+yay -S cetch
+```
 
 Otherwise, grab the script directly:
 
