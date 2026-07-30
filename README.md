@@ -2,40 +2,17 @@
 
 A small terminal fastfetch-esque tool, in a single bash script. Info gets laid out vertically, and it is all horizontally centered.
 
-<pre>
-                      _-----_
-                     (   0   \
-                      \      )
-                      /    _-
-                     (____-
+<img width="687" height="485" alt="image" src="https://github.com/user-attachments/assets/c0af5f7a-2740-490b-879e-df4bb8319258" />
 
-     ╭── System Info ─────────────────────────╮
-     │ User                       will@gentoo │
-     │ Kernel                  7.1.2-cachyos2 │
-     │ OS                 Gentoo Linux x86_64 │
-     │ WM/DE                   niri (Wayland) │
-     │ Packages   1097 (portage), 8 (flatpak) │
-     │ Disk                  90G / 220G (44%) │
-     ╰────────────────────────────────────────╯
+## Why?
 
-                  ● ● ● ● ● ● ● ●
-</pre>
-
-## Why
-
-Most fetch tools lay information out in two columns next to a logo, which
-looks great in a wide terminal and terrible in a narrow split. `cetch`
-stacks the logo, an info box, and a color swatch, all centered, so it holds
-up in a 40-column pane just as well as a full-width window.
+Most fetch tools show a huge logo and pretty verbose information, which looks great in a wide terminal but looks terrible in a narrow split (such as on niri). `cetch` stacks the logo, an info box, and a colour swatch, all centered, so it looks just as good in a 40-column slice as it does in a full width window.
 
 ## Requirements
 
 - bash 4.0+
 - coreutils (`df`, `tput` if you want proper column detection)
-- a [Nerd Font](https://www.nerdfonts.com/) if you want the little icons —
-  otherwise pass `--no-icons`
-
-Nothing else. No Python, no external fetch library, no package to install.
+- a [Nerd Font](https://www.nerdfonts.com/) if you want the little icons, otherwise pass `--no-icons`
 
 ## Install
 
@@ -53,7 +30,7 @@ cd cetch
 ./cetch.sh
 ```
 
-Drop it somewhere on your `$PATH` (`~/.local/bin`, for instance) if you want
+Put it somewhere on your `$PATH` (like `~/.local/bin`) if you want
 to run it as `cetch` from anywhere.
 
 ## Usage
@@ -69,8 +46,7 @@ cetch.sh [options]
 
 ## Configuration
 
-Everything is an environment variable, so you can drop overrides straight
-into your shell rc file.
+Everything is an environment variable, so you can just add overrides to your shell rc file.
 
 | Variable            | Effect                                                      |
 | ------------------- | ------------------------------------------------------------ |
@@ -85,12 +61,6 @@ into your shell rc file.
 ## Supported logos
 
 Arch, CachyOS, Debian, Ubuntu, Fedora, Gentoo, and Mint get their own logo.
-Anything else falls back to a generic Tux-ish face colored from
+Anything else falls back to a generic Tux(ish) face colored from
 `/etc/os-release`'s `ANSI_COLOR`, so it still looks reasonable on distros
-that aren't explicitly handled.
-
-## Status
-
-Early days — this has mostly been tested on my own machines. If something
-breaks on your setup, open an issue with your distro, `$TERM`, and the
-output you got.
+that I haven't hardcoded.
