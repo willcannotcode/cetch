@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-if ((BASH_VERSINFO[0] < 4)); then
-	printf 'cetch: requires bash 4.0 or newer (found %s)\n' "$BASH_VERSION" >&2
-	exit 1
-fi
+((BASH_VERSINFO[0] >= 4)) || { echo "cetch: needs bash 4.0+, found $BASH_VERSION" >&2; exit 1; }
 set -u
 shopt -s extglob
 shopt -s nullglob
@@ -36,6 +33,7 @@ ICON_DISK=$'\xef\x82\xa0'
 USE_COLOR=1
 USE_ICONS=1
 COLS_OVERRIDE=${CETCH_COLS:-}
+
 
 usage() {
 	cat <<'EOF'
@@ -84,6 +82,7 @@ parse_args() {
 	done
 }
 
+# some bash builds/locales count bytes instead of characters; check which we've got
 _probe=─
 ((${#_probe} == 1)) && MB_OK=1 || MB_OK=0
 unset _probe
@@ -93,6 +92,7 @@ vwidth() {
 	if ((MB_OK)); then
 		_W=${#s}
 	else
+		# no multibyte support: drop UTF-8 continuation bytes so ${#s} is close enough
 		s=${s//[$'\x80'-$'\xbf']/}
 		_W=${#s}
 	fi
@@ -137,6 +137,7 @@ blank() {
 	for ((i = 0; i < $1; i++)); do printf '\n'; done
 }
 
+
 setup_term() {
 	if [[ -n $COLS_OVERRIDE && ! $COLS_OVERRIDE == +([0-9]) ]]; then
 		printf 'cetch: warning: ignoring invalid width %q, using terminal width\n' "$COLS_OVERRIDE" >&2
@@ -167,6 +168,7 @@ setup_colors() {
 		C_ACCENT=$'\e['$LOGO_SGR8'm'
 	fi
 }
+
 
 OS_ID= OS_ID_LIKE= OS_PRETTY= OS_NAME= OS_ANSI=
 
@@ -307,6 +309,7 @@ ART
 	esac
 }
 
+
 get_user() {
 	local user=${USER:-${LOGNAME:-}} host=
 	[[ -n $user ]] || user=$(id -un 2>/dev/null)
@@ -335,9 +338,7 @@ get_wm() {
 	fi
 
 	if [[ -z $wm ]]; then
-		# Best-effort fallback for sessions with no XDG/DESKTOP_SESSION hint:
-		# scan /proc for a known WM process. PID iteration order is arbitrary,
-		# so this picks the first match, not necessarily the active WM.
+		# no XDG hint, guess from /proc instead - first match wins, order isn't guaranteed
 		local w
 		local known=' hyprland sway river niri wayfire labwc dwl weston
 			cosmic-comp i3 bspwm dwm awesome openbox xmonad qtile spectrwm
@@ -386,6 +387,7 @@ get_packages() {
 	((${#d[@]})) && out+="${out:+, }${#d[@]} (portage)"
 
 	if [[ -r /var/lib/dpkg/status ]] && hash dpkg-query 2>/dev/null; then
+		# -W alone also counts removed-but-not-purged packages, so filter to installed
 		n=$(dpkg-query -f '${db:Status-Abbrev}\n' -W 2>/dev/null | grep -c '^ii')
 		((n)) && out+="${out:+, }$n (dpkg)"
 	fi
@@ -439,8 +441,8 @@ collect_info() {
 	row "$ICON_WM" WM/DE "$(get_wm)"
 	row "$ICON_PKG" Packages "$(get_packages)"
 	row "$ICON_DISK" Disk "$(get_disk)"
-
 }
+
 
 render_logo() {
 	local line max=0 pad
@@ -475,6 +477,7 @@ render_box() {
 	((inner < TITLE_DASHES + tw + 3)) && inner=$((TITLE_DASHES + tw + 3))
 	((inner < BOX_MIN_WIDTH - 2)) && inner=$((BOX_MIN_WIDTH - 2))
 	((inner < 12)) && inner=12
+	# terminal width wins over every other floor, so this clamp has to run last
 	((inner > COLS - 2)) && inner=$((COLS - 2))
 
 	local title
@@ -535,6 +538,7 @@ render_dots() {
 	done
 	center "$line"
 }
+
 
 main() {
 	parse_args "$@"
