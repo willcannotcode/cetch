@@ -1,10 +1,8 @@
 # cetch
 
-A small terminal system-info fetcher, no different in spirit from neofetch or
-fastfetch, except it's a single bash script, it lays everything out
-vertically, and the whole thing sits centered in your terminal.
+A small terminal fastfetch-esque tool, in a single bash script. Info gets laid out vertically, and it is all horizontally centered.
 
-```
+<pre>
                       _-----_
                      (   0   \
                       \      )
@@ -21,7 +19,7 @@ vertically, and the whole thing sits centered in your terminal.
      ╰────────────────────────────────────────╯
 
                   ● ● ● ● ● ● ● ●
-```
+</pre>
 
 ## Why
 
