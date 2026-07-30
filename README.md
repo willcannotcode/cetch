@@ -1,4 +1,4 @@
-# cetch
+# Cetch
 
 A small terminal fastfetch-esque tool, in a single bash script. Info gets laid out vertically, and it is all horizontally centered.
 
