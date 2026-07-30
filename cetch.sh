@@ -82,7 +82,7 @@ parse_args() {
 	done
 }
 
-# some bash builds/locales count bytes instead of characters; check which we've got
+# sometimes it counts bytes instead of characters so check if that's happening
 _probe=─
 ((${#_probe} == 1)) && MB_OK=1 || MB_OK=0
 unset _probe
@@ -92,7 +92,6 @@ vwidth() {
 	if ((MB_OK)); then
 		_W=${#s}
 	else
-		# no multibyte support: drop UTF-8 continuation bytes so ${#s} is close enough
 		s=${s//[$'\x80'-$'\xbf']/}
 		_W=${#s}
 	fi
@@ -338,7 +337,7 @@ get_wm() {
 	fi
 
 	if [[ -z $wm ]]; then
-		# no XDG hint, guess from /proc instead - first match wins, order isn't guaranteed
+		# guess from /proc
 		local w
 		local known=' hyprland sway river niri wayfire labwc dwl weston
 			cosmic-comp i3 bspwm dwm awesome openbox xmonad qtile spectrwm
@@ -387,7 +386,7 @@ get_packages() {
 	((${#d[@]})) && out+="${out:+, }${#d[@]} (portage)"
 
 	if [[ -r /var/lib/dpkg/status ]] && hash dpkg-query 2>/dev/null; then
-		# -W alone also counts removed-but-not-purged packages, so filter to installed
+		# only count installed packages
 		n=$(dpkg-query -f '${db:Status-Abbrev}\n' -W 2>/dev/null | grep -c '^ii')
 		((n)) && out+="${out:+, }$n (dpkg)"
 	fi
@@ -477,7 +476,6 @@ render_box() {
 	((inner < TITLE_DASHES + tw + 3)) && inner=$((TITLE_DASHES + tw + 3))
 	((inner < BOX_MIN_WIDTH - 2)) && inner=$((BOX_MIN_WIDTH - 2))
 	((inner < 12)) && inner=12
-	# terminal width wins over every other floor, so this clamp has to run last
 	((inner > COLS - 2)) && inner=$((COLS - 2))
 
 	local title
