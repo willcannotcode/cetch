@@ -20,8 +20,7 @@ Most fetch tools show a huge logo and pretty verbose information, which looks gr
 On Arch (or anything with an AUR helper):
 
 ```
-yay -Sy
-yay -S cetch
+yay -Sy cetch
 ```
 
 Otherwise, grab the script directly:
