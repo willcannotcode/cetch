@@ -3,6 +3,7 @@
 A small terminal fastfetch-esque tool, in a single bash script. Info gets laid out vertically, and it is all horizontally centered.
 
 <img width="687" height="485" alt="image" src="https://github.com/user-attachments/assets/c0af5f7a-2740-490b-879e-df4bb8319258" />
+<img width="687" height="485" alt="image" src="https://github.com/user-attachments/assets/ca27cc85-15f0-48c0-9d80-fee99021a1b1" />
 
 ## Why?
 
