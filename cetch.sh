@@ -37,7 +37,7 @@ COLS_OVERRIDE=${CETCH_COLS:-}
 
 usage() {
 	cat <<'EOF'
-cetch.sh — vertical, terminal-centred system info
+cetch
 
 Usage: cetch.sh [options]
 
