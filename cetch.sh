@@ -9,6 +9,7 @@ BOX_MIN_WIDTH=${CETCH_MIN_WIDTH:-42}
 LABEL_GAP=2
 TITLE_DASHES=2
 DISK_MOUNT=${CETCH_DISK:-/}
+USE_ACCENT=0
 
 BLANK_AFTER_LOGO=1
 BLANK_BEFORE_DOTS=1
@@ -43,6 +44,7 @@ Usage: cetch.sh [options]
 
 Options:
   -w, --width N    render as if the terminal were N columns wide
+	  --accent	   use terminal's accent color
       --no-color   monochrome output
       --no-icons   drop the Nerd Font glyphs (plain labels)
   -h, --help       show this message
@@ -69,6 +71,7 @@ parse_args() {
 		--width=*) COLS_OVERRIDE=${1#*=} ;;
 		--no-color | --no-colour) USE_COLOR=0 ;;
 		--no-icons) USE_ICONS=0 ;;
+		--accent) USE_ACCENT=1 ;;
 		-h | --help)
 			usage
 			exit 0
@@ -155,12 +158,45 @@ setup_term() {
 	fi
 }
 
+get_kitty_url_color() {
+	[[ -n ${KITTY_PID:-} ]] || return 1
+
+	kitty @ get-colors 2>/dev/null |
+	awk '$1=="url_color"{print $2; exit}'
+}
+
+hex_to_escape() {
+	local hex=${1#"#"}
+
+	[[ $hex =~ ^[0-9A-Fa-f]{6}$ ]] || return 1
+
+	local r=$((16#${hex:0:2}))
+	local g=$((16#${hex:2:2}))
+	local b=$((16#${hex:4:2}))
+
+	printf '\e[38;2;%d;%d;%dm' "$r" "$g" "$b"
+}
+
 setup_colors() {
-	C_RESET= C_BOLD= C_ACCENT=
+	C_RESET=
+	C_BOLD=
+	C_ACCENT=
+
 	((USE_COLOR)) || return 0
 
 	C_RESET=$'\e[0m'
 	C_BOLD=$'\e[1m'
+
+	if ((USE_ACCENT)); then
+		local kitty_color
+
+		kitty_color=$(get_kitty_url_color)
+
+		if C_ACCENT=$(hex_to_escape "$kitty_color"); then
+			return
+		fi
+	fi
+
 	if ((NCOLORS >= 256)); then
 		C_ACCENT=$'\e['$LOGO_SGR'm'
 	else
