@@ -42,6 +42,49 @@ cd cetch
 Put it somewhere on your `$PATH` (like `~/.local/bin`) if you want
 to run it as `cetch` from anywhere.
 
+**On NixOS (flakes)**
+
+either run it using nix run like so:
+
+```
+nix run github:willcannotcode/cetch
+```
+
+or install it system-wide by adding it to your inputs:
+
+```
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    # Add this input to your flake
+    cetch.url = "github:willcannotcode/cetch";
+  };
+
+  # example config of how to handle your outputs
+  outputs = { self, nixpkgs, cetch, ... }@inputs: {
+    nixosConfigurations.your-hostname = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      specialArgs = { inherit inputs; };
+      modules = [
+        ./configuration.nix
+      ];
+    };
+  };
+}
+```
+
+then in configuration.nix add:
+
+
+```
+{ pkgs, inputs, ... }: {
+  environment.systemPackages = [
+    inputs.cetch.packages.${pkgs.stdenv.hostPlatform.system}.default
+  ];
+}
+```
+
 ## Usage
 
 ```
