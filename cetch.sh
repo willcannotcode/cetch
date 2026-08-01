@@ -47,6 +47,7 @@ USE_COLOR=1
 USE_ICONS=1
 USE_LOGO=1
 SIDE=0
+SIDE_PAD=0
 COLS_OVERRIDE=${CETCH_COLS:-}
 
 
@@ -60,7 +61,8 @@ Options:
   -w, --width N       render as if the terminal were N columns wide
       --accent        use terminal's accent color
       --color HEX     use a specific color (#7aa2f7, 7aa2f7 or #7af)
-      --side          place the logo to the left of the box
+      --side [N]      place the logo to the left of the box, N extra
+                      columns clear of it (default 0)
       --no-logo       draw the box on its own
       --no-color      monochrome output
       --no-icons      drop the Nerd Font glyphs (plain labels)
@@ -104,7 +106,22 @@ parse_args() {
 		--no-color | --no-colour) USE_COLOR=0 ;;
 		--no-icons) USE_ICONS=0 ;;
 		--no-logo) USE_LOGO=0 ;;
-		--side) SIDE=1 ;;
+		--side)
+			SIDE=1
+			# the count is optional, so only eat the next word if it is one
+			if [[ ${2:-} == +([0-9]) ]]; then
+				SIDE_PAD=$2
+				shift
+			fi
+			;;
+		--side=*)
+			SIDE=1
+			SIDE_PAD=${1#*=}
+			if [[ $SIDE_PAD != +([0-9]) ]]; then
+				printf 'cetch: warning: ignoring invalid --side value %q\n' "$SIDE_PAD" >&2
+				SIDE_PAD=0
+			fi
+			;;
 		--accent) USE_ACCENT=1 ;;
 		--list-distros)
 			list_distros
@@ -768,7 +785,7 @@ build_box_lines() {
 
 	BOX_LINES=()
 
-	((USE_ICONS)) && icon_w=$((ICON_CELLS + 1))
+	((USE_ICONS)) && icon_w=$((ICON_CELLS + 2))
 
 	for ((i = 0; i < n; i++)); do
 		[[ -n ${VALUES[i]} ]] || continue
@@ -819,7 +836,7 @@ build_box_lines() {
 		_rep ' ' "$gap"
 
 		printf -v line '%s%s ' "$C_ACCENT" "$B_V"
-		((USE_ICONS)) && printf -v line '%s%s ' "$line" "$icon"
+		((USE_ICONS)) && printf -v line '%s%s  ' "$line" "$icon"
 		printf -v line '%s%s%s%s%s%s %s%s%s' \
 			"$line" "$label" "$_R" "$C_RESET$C_BOLD" "$value" "$C_RESET" \
 			"$C_ACCENT" "$B_V" "$C_RESET"
@@ -885,6 +902,7 @@ main() {
 	collect_info
 
 	((USE_LOGO)) || SIDE=0
+	((SIDE)) && LOGO_GAP=$((LOGO_GAP + SIDE_PAD))
 	((USE_LOGO)) && build_logo_lines
 	((SIDE && COLS - LOGO_W - LOGO_GAP < SIDE_MIN_BOX)) && SIDE=0
 
