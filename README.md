@@ -68,8 +68,7 @@ Everything is an environment variable, so you can just add overrides to your she
 | `NO_COLOR`          | disable color output ([no-color.org](https://no-color.org))   |
 
 ## Supported logos
-
-Arch, CachyOS, Debian, Ubuntu, Fedora, Gentoo, Mint, NixOS, OpenSUSE, Void, Alpine, and Manjaro get their own logo.
+`Arch, CachyOS, Debian, Ubuntu, Fedora, Gentoo, Mint, NixOS, OpenSUSE, Void, Alpine, Manjaro` all get their own logo.
 Anything else falls back to a generic Tux(ish) face colored from
 `/etc/os-release`'s `ANSI_COLOR`, so it still looks reasonable on distros
 that I haven't hardcoded.
