@@ -7,7 +7,7 @@ A small terminal fastfetch-esque tool, in a single bash script, all horizontally
 
 ## Why?
 
-Most fetch tools show a huge logo and pretty verbose information, which looks great in a wide terminal but looks terrible in a narrow split (such as on niri). `cetch` stacks the logo, an info box, and a colour swatch, all centered, so it looks just as good in a 40-column slice as it does in a full width window.
+Most fetch tools show a huge logo and pretty verbose information, which looks great in a wide terminal but looks terrible in a narrow split (such as on niri). `cetch` aligns the info vertically, all stacked and centered, so it looks just as good in a 40-column slice as it does in a full width window.
 
 ## Requirements
 
@@ -23,7 +23,7 @@ On Arch (or anything with an AUR helper):
 yay -Sy cetch
 ```
 
-Otherwise, grab the script directly:
+Or grab the script directly:
 
 ```sh
 curl -o cetch.sh https://raw.githubusercontent.com/willcannotcode/cetch/main/cetch.sh
@@ -69,7 +69,7 @@ Everything is an environment variable, so you can just add overrides to your she
 
 ## Supported logos
 
-Arch, CachyOS, Debian, Ubuntu, Fedora, Gentoo, and Mint get their own logo.
+Arch, CachyOS, Debian, Ubuntu, Fedora, Gentoo, Mint, NixOS, OpenSUSE, Void, Alpine, and Manjaro get their own logo.
 Anything else falls back to a generic Tux(ish) face colored from
 `/etc/os-release`'s `ANSI_COLOR`, so it still looks reasonable on distros
 that I haven't hardcoded.
