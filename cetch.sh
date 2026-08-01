@@ -73,7 +73,7 @@ Environment:
                       user,kernel,os,wm,packages,disk); choose from
                       user, kernel, os, wm, packages, disk, uptime,
                       shell, memory, cpu, ip
-  CETCH_ICON_CELLS=2  in case your terminal draws Nerd Font icons two cells wide
+  CETCH_ICON_CELLS=2  if your terminal draws Nerd Font icons two cells wide
   CETCH_TITLE=text    box title (default "System Info")
   CETCH_MIN_WIDTH=n   minimum box width (default 42)
   CETCH_DISK=path     filesystem for the disk row (default /)
@@ -860,19 +860,17 @@ render_side() {
 }
 
 render_dots() {
-	local i n=16 line= gap=$DOT_GAP
-	((NCOLORS >= 16)) || n=8
-	((n > COLS)) && n=8
-	while ((${#gap} > 0 && n + (n - 1) * ${#gap} > COLS)); do gap=${gap:1}; done
-	for ((i = 0; i < n; i++)); do
+	local i line= gap=$DOT_GAP
+	while ((${#gap} > 0 && 8 + 7 * ${#gap} > COLS)); do gap=${gap:1}; done
+	for i in {0..7}; do
 		if ((NCOLORS >= 16)); then
-			line+=$'\e[38;5;'$i'm'$DOT$C_RESET
+			line+=$'\e[38;5;'$((i + 8))'m'$DOT$C_RESET
 		elif ((USE_COLOR)); then
-			line+=$'\e[3'$i'm'$DOT$C_RESET
+			line+=$'\e[1;3'$i'm'$DOT$C_RESET
 		else
 			line+=$DOT
 		fi
-		((i < n - 1)) && line+=$gap
+		((i < 7)) && line+=$gap
 	done
 	center "$line"
 }
