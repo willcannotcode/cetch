@@ -73,7 +73,7 @@ Environment:
                       user,kernel,os,wm,packages,disk); choose from
                       user, kernel, os, wm, packages, disk, uptime,
                       shell, memory, cpu, ip
-  CETCH_ICON_CELLS=2  if your terminal draws Nerd Font icons two cells wide
+  CETCH_ICON_CELLS=2  in case your terminal draws Nerd Font icons two cells wide
   CETCH_TITLE=text    box title (default "System Info")
   CETCH_MIN_WIDTH=n   minimum box width (default 42)
   CETCH_DISK=path     filesystem for the disk row (default /)
