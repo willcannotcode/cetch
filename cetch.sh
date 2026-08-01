@@ -44,7 +44,7 @@ Usage: cetch.sh [options]
 
 Options:
   -w, --width N    render as if the terminal were N columns wide
-	  --accent	   use terminal's accent color
+      --accent	   use terminal's accent color
       --no-color   monochrome output
       --no-icons   drop the Nerd Font glyphs (plain labels)
   -h, --help       show this message
