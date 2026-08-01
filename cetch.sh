@@ -10,9 +10,16 @@ LABEL_GAP=2
 TITLE_DASHES=2
 DISK_MOUNT=${CETCH_DISK:-/}
 USE_ACCENT=0
+ACCENT_HEX=${CETCH_COLOR:-}
+
+DEFAULT_ROWS=user,kernel,os,wm,packages,disk
+ROWS=${CETCH_ROWS:-$DEFAULT_ROWS}
+DISTROS='arch cachyos debian ubuntu fedora gentoo mint nixos opensuse void alpine manjaro linux'
 
 BLANK_AFTER_LOGO=1
 BLANK_BEFORE_DOTS=1
+LOGO_GAP=3
+SIDE_MIN_BOX=20
 
 DOT=●
 DOT_GAP=' '
@@ -30,9 +37,16 @@ ICON_OS=$'\xef\x85\xbc'
 ICON_WM=$'\xef\x8b\x90'
 ICON_PKG=$'\xef\x92\x87'
 ICON_DISK=$'\xef\x82\xa0'
+ICON_UPTIME=$'\xef\x80\x97'
+ICON_SHELL=$'\xef\x84\xa0'
+ICON_MEM=$'\xf3\xb0\x8d\x9b'
+ICON_CPU=$'\xef\x8b\x9b'
+ICON_IP=$'\xef\x82\xac'
 
 USE_COLOR=1
 USE_ICONS=1
+USE_LOGO=1
+SIDE=0
 COLS_OVERRIDE=${CETCH_COLS:-}
 
 
@@ -43,22 +57,35 @@ cetch
 Usage: cetch.sh [options]
 
 Options:
-  -w, --width N    render as if the terminal were N columns wide
-      --accent	   use terminal's accent color
-      --no-color   monochrome output
-      --no-icons   drop the Nerd Font glyphs (plain labels)
-  -h, --help       show this message
+  -w, --width N       render as if the terminal were N columns wide
+      --accent        use terminal's accent color
+      --color HEX     use a specific color (#7aa2f7, 7aa2f7 or #7af)
+      --side          place the logo to the left of the box
+      --no-logo       draw the box on its own
+      --no-color      monochrome output
+      --no-icons      drop the Nerd Font glyphs (plain labels)
+      --list-distros  print the logo names CETCH_DISTRO accepts
+  -h, --help          show this message
 
 Environment:
-  CETCH_DISTRO=id     force a logo (arch, cachyos, debian, ubuntu,
-                      fedora, gentoo, mint, linux) — handy for previewing
+  CETCH_DISTRO=id     force a logo (see --list-distros)
+  CETCH_ROWS=a,b,c    pick the rows and their order (default:
+                      user,kernel,os,wm,packages,disk); choose from
+                      user, kernel, os, wm, packages, disk, uptime,
+                      shell, memory, cpu, ip
   CETCH_ICON_CELLS=2  if your terminal draws Nerd Font icons two cells wide
   CETCH_TITLE=text    box title (default "System Info")
   CETCH_MIN_WIDTH=n   minimum box width (default 42)
-  CETCH_DISK=path     filesystem for the Disk row (default /)
+  CETCH_DISK=path     filesystem for the disk row (default /)
   CETCH_COLS=n        same as --width
+  CETCH_COLOR=hex     same as --color
   NO_COLOR=1          disable colour (https://no-color.org)
 EOF
+}
+
+list_distros() {
+	local d
+	for d in $DISTROS; do printf '%s\n' "$d"; done
 }
 
 parse_args() {
@@ -69,9 +96,20 @@ parse_args() {
 			shift
 			;;
 		--width=*) COLS_OVERRIDE=${1#*=} ;;
+		--color | --colour)
+			ACCENT_HEX=${2:-}
+			shift
+			;;
+		--color=* | --colour=*) ACCENT_HEX=${1#*=} ;;
 		--no-color | --no-colour) USE_COLOR=0 ;;
 		--no-icons) USE_ICONS=0 ;;
+		--no-logo) USE_LOGO=0 ;;
+		--side) SIDE=1 ;;
 		--accent) USE_ACCENT=1 ;;
+		--list-distros)
+			list_distros
+			exit 0
+			;;
 		-h | --help)
 			usage
 			exit 0
@@ -158,15 +196,35 @@ setup_term() {
 	fi
 }
 
-get_kitty_url_color() {
-	[[ -n ${KITTY_PID:-} ]] || return 1
+get_term_accent_color() {
+	local old_stty= reply=
+	{
+		old_stty=$(stty -g < /dev/tty) &&
+		stty raw -echo < /dev/tty &&
+		printf '\e]12;?\a' > /dev/tty &&
+		IFS= read -r -t 0.3 -d $'\a' reply < /dev/tty
+		[[ -n $old_stty ]] && stty "$old_stty" < /dev/tty
+	} 2>/dev/null
 
-	kitty @ get-colors 2>/dev/null |
-	awk '$1=="url_color"{print $2; exit}'
+	[[ -n $reply ]] || return 1
+	osc_rgb_to_hex "${reply#*rgb:}"
+}
+
+osc_rgb_to_hex() {
+	local part out=
+	[[ $1 =~ ^([0-9A-Fa-f]{1,4})/([0-9A-Fa-f]{1,4})/([0-9A-Fa-f]{1,4})$ ]] || return 1
+	for part in "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}"; do
+		((${#part} == 1)) && part+=$part
+		out+=${part:0:2}
+	done
+	printf '#%s' "$out"
 }
 
 hex_to_escape() {
 	local hex=${1#"#"}
+
+	[[ $hex =~ ^([0-9A-Fa-f])([0-9A-Fa-f])([0-9A-Fa-f])$ ]] &&
+		hex=${BASH_REMATCH[1]}${BASH_REMATCH[1]}${BASH_REMATCH[2]}${BASH_REMATCH[2]}${BASH_REMATCH[3]}${BASH_REMATCH[3]}
 
 	[[ $hex =~ ^[0-9A-Fa-f]{6}$ ]] || return 1
 
@@ -187,12 +245,19 @@ setup_colors() {
 	C_RESET=$'\e[0m'
 	C_BOLD=$'\e[1m'
 
+	if [[ -n $ACCENT_HEX ]]; then
+		if C_ACCENT=$(hex_to_escape "$ACCENT_HEX"); then
+			return
+		fi
+		printf 'cetch: warning: ignoring invalid color %q, using the logo default\n' "$ACCENT_HEX" >&2
+	fi
+
 	if ((USE_ACCENT)); then
-		local kitty_color
+		local accent_color
 
-		kitty_color=$(get_kitty_url_color)
+		accent_color=$(get_term_accent_color)
 
-		if C_ACCENT=$(hex_to_escape "$kitty_color"); then
+		if [[ -n $accent_color ]] && C_ACCENT=$(hex_to_escape "$accent_color"); then
 			return
 		fi
 	fi
@@ -239,6 +304,11 @@ distro_family() {
 	fedora | nobara | rhel | centos | rocky | almalinux) printf fedora ;;
 	gentoo | funtoo) printf gentoo ;;
 	linuxmint | mint | lmde) printf mint ;;
+	nixos) printf nixos ;;
+	opensuse | opensuse-* | suse | sles | sled | tumbleweed) printf opensuse ;;
+	void) printf void ;;
+	alpine | postmarketos) printf alpine ;;
+	manjaro | manjaro-arm) printf manjaro ;;
 	'')
 		printf linux
 		;;
@@ -249,6 +319,8 @@ distro_family() {
 		*debian*) printf debian ;;
 		*fedora* | *rhel*) printf fedora ;;
 		*gentoo*) printf gentoo ;;
+		*suse*) printf opensuse ;;
+		*alpine*) printf alpine ;;
 		*) printf linux ;;
 		esac
 		;;
@@ -329,6 +401,61 @@ ART
   | | | | | |
   | \_____/ |
   \_________/
+ART
+		;;
+	nixos)
+		LOGO_SGR='38;5;69' LOGO_SGR8='34'
+		mapfile -t LOGO <<'ART'
+  \\  \\ //
+ ==\\__\\/ //
+   //   \\//
+==//     //==
+ //\\___//
+// /\\  \\==
+  // \\  \\
+ART
+		;;
+	opensuse)
+		LOGO_SGR='38;5;77' LOGO_SGR8='32'
+		mapfile -t LOGO <<'ART'
+  _______
+__|   __ \
+     / .\ \
+     \__/ |
+___  .____|
+   \______/
+ART
+		;;
+	void)
+		LOGO_SGR='38;5;35' LOGO_SGR8='32'
+		mapfile -t LOGO <<'ART'
+   ______
+ _ \____ \
+| \  _  \ |
+| | |_| | |
+| \____ \_|
+ \_____\
+ART
+		;;
+	alpine)
+		LOGO_SGR='38;5;33' LOGO_SGR8='34'
+		mapfile -t LOGO <<'ART'
+    /\ /\
+   /  \  \
+  /    \  \
+ /|     \  \
+/\,      \  \
+ART
+		;;
+	manjaro)
+		LOGO_SGR='38;5;35' LOGO_SGR8='32'
+		mapfile -t LOGO <<'ART'
+|||||||| |||
+|||||||| |||
+||||     |||
+|||| ||| |||
+|||| ||| |||
+|||| ||| |||
 ART
 		;;
 	*)
@@ -461,6 +588,118 @@ get_disk() {
 	printf '%s / %s (%s)' "$used" "$size" "$pcent"
 }
 
+get_uptime() {
+	local secs= d h m out=
+	[[ -r /proc/uptime ]] && read -r secs _ </proc/uptime
+	[[ -n $secs ]] || {
+		printf 'unknown'
+		return
+	}
+	secs=${secs%.*}
+	d=$((secs / 86400))
+	h=$((secs % 86400 / 3600))
+	m=$((secs % 3600 / 60))
+	((d)) && out+="${d}d "
+	((d || h)) && out+="${h}h "
+	printf '%s' "$out${m}m"
+}
+
+get_shell() {
+	local sh=${SHELL:-}
+	sh=${sh##*/}
+	printf '%s' "${sh:-unknown}"
+}
+
+fmt_kib() {
+	if (($1 >= 1048576)); then
+		printf '%d.%dG' $(($1 / 1048576)) $(($1 % 1048576 * 10 / 1048576))
+	elif (($1 >= 1024)); then
+		printf '%dM' $(($1 / 1024))
+	else
+		printf '%dK' "$1"
+	fi
+}
+
+get_memory() {
+	local key val total=0 avail=0 free=0 used
+	[[ -r /proc/meminfo ]] || {
+		printf 'unknown'
+		return
+	}
+	while IFS=': ' read -r key val _; do
+		case $key in
+		MemTotal) total=$val ;;
+		MemAvailable) avail=$val ;;
+		MemFree) free=$val ;;
+		esac
+	done </proc/meminfo
+	((total)) || {
+		printf 'unknown'
+		return
+	}
+	((avail)) || avail=$free
+	used=$((total - avail))
+	printf '%s / %s (%d%%)' "$(fmt_kib "$used")" "$(fmt_kib "$total")" $((used * 100 / total))
+}
+
+get_cpu() {
+	local line model= cores=0
+	[[ -r /proc/cpuinfo ]] || {
+		printf 'unknown'
+		return
+	}
+	while IFS= read -r line; do
+		case $line in
+		processor*) ((cores++)) ;;
+		'model name'* | Model* | Hardware*)
+			[[ -n $model ]] || model=${line#*: }
+			;;
+		esac
+	done </proc/cpuinfo
+	model=${model//'(R)'/}
+	model=${model//'(TM)'/}
+	model=${model//'(tm)'/}
+	model=${model// CPU/}
+	model=${model//+([[:space:]])/ }
+	model=${model# }
+	model=${model% }
+	[[ -n $model ]] || model=unknown
+	((cores)) && model+=" (${cores})"
+	printf '%s' "$model"
+}
+
+get_ip() {
+	local name dest iface= addr=
+	if [[ -r /proc/net/route ]]; then
+		while read -r name dest _; do
+			[[ $dest == 00000000 ]] && {
+				iface=$name
+				break
+			}
+		done </proc/net/route
+	fi
+
+	if hash ip 2>/dev/null; then
+		if [[ -n $iface ]]; then
+			addr=$(ip -4 -o addr show dev "$iface" scope global 2>/dev/null)
+		else
+			addr=$(ip -4 -o addr show scope global 2>/dev/null)
+		fi
+		if [[ $addr == *' inet '* ]]; then
+			addr=${addr#* inet }
+			addr=${addr%%/*}
+		else
+			addr=
+		fi
+	fi
+
+	if [[ -z $addr ]] && hash hostname 2>/dev/null; then
+		read -r addr _ < <(hostname -I 2>/dev/null)
+	fi
+
+	printf '%s' "${addr:-unknown}"
+} # finally
+
 ICONS=() LABELS=() VALUES=()
 
 row() {
@@ -469,32 +708,65 @@ row() {
 	VALUES+=("$3")
 }
 
+add_row() {
+	case $1 in
+	user) row "$ICON_USER" User "$(get_user)" ;;
+	kernel) row "$ICON_KERNEL" Kernel "$(get_kernel)" ;;
+	os) row "$ICON_OS" OS "$(get_os)" ;;
+	wm | wm/de | de) row "$ICON_WM" WM/DE "$(get_wm)" ;;
+	packages | pkgs) row "$ICON_PKG" Packages "$(get_packages)" ;;
+	disk) row "$ICON_DISK" Disk "$(get_disk)" ;;
+	uptime) row "$ICON_UPTIME" Uptime "$(get_uptime)" ;;
+	shell) row "$ICON_SHELL" Shell "$(get_shell)" ;;
+	memory | mem | ram) row "$ICON_MEM" Memory "$(get_memory)" ;;
+	cpu) row "$ICON_CPU" CPU "$(get_cpu)" ;;
+	ip | localip) row "$ICON_IP" 'Local IP' "$(get_ip)" ;;
+	'') ;;
+	*) printf 'cetch: warning: skipping unknown row %q (try --help)\n' "$1" >&2 ;;
+	esac
+}
+
 collect_info() {
-	row "$ICON_USER" User "$(get_user)"
-	row "$ICON_KERNEL" Kernel "$(get_kernel)"
-	row "$ICON_OS" OS "$(get_os)"
-	row "$ICON_WM" WM/DE "$(get_wm)"
-	row "$ICON_PKG" Packages "$(get_packages)"
-	row "$ICON_DISK" Disk "$(get_disk)"
+	local key
+	local -a want
+	IFS=', ' read -r -a want <<<"$ROWS"
+	for key in ${want[@]+"${want[@]}"}; do
+		add_row "${key,,}"
+	done
 }
 
 
-render_logo() {
-	local line max=0 pad
+LOGO_LINES=() BOX_LINES=() LOGO_W=0 BOX_W=0
+
+print_block() {
+	local w=$1 pad line
+	shift
+	pad=$(((COLS - w) / 2))
+	((pad < 0)) && pad=0
+	for line in "$@"; do
+		printf '%*s%s\n' "$pad" '' "$line"
+	done
+}
+
+build_logo_lines() {
+	local line
+	LOGO_LINES=()
+	LOGO_W=0
 	for line in "${LOGO[@]}"; do
 		vwidth "$line"
-		((_W > max)) && max=$_W
+		((_W > LOGO_W)) && LOGO_W=$_W
 	done
-	pad=$(((COLS - max) / 2))
-	((pad < 0)) && pad=0
 	for line in "${LOGO[@]}"; do
-		printf '%*s%s%s%s\n' "$pad" '' "$C_BOLD$C_ACCENT" "$line" "$C_RESET"
+		LOGO_LINES+=("$C_BOLD$C_ACCENT$line$C_RESET")
 	done
 }
 
-render_box() {
-	local i n=${#LABELS[@]} icon_w=0 inner=0 need tw lw vw gap pad
-	local icon label value
+build_box_lines() {
+	local maxw=$1
+	local i n=${#LABELS[@]} icon_w=0 inner=0 need tw lw vw gap
+	local icon label value line
+
+	BOX_LINES=()
 
 	((USE_ICONS)) && icon_w=$((ICON_CELLS + 1))
 
@@ -512,7 +784,7 @@ render_box() {
 	((inner < TITLE_DASHES + tw + 3)) && inner=$((TITLE_DASHES + tw + 3))
 	((inner < BOX_MIN_WIDTH - 2)) && inner=$((BOX_MIN_WIDTH - 2))
 	((inner < 12)) && inner=12
-	((inner > COLS - 2)) && inner=$((COLS - 2))
+	((inner > maxw - 2)) && inner=$((maxw - 2))
 
 	local title
 	_fit "$BOX_TITLE" $((inner - TITLE_DASHES - 3))
@@ -520,16 +792,14 @@ render_box() {
 	vwidth "$title"
 	tw=$_W
 
-	pad=$(((COLS - inner - 2) / 2))
-	((pad < 0)) && pad=0
-
 	_rep "$B_H" "$TITLE_DASHES"
 	local top=$_R
 	_rep "$B_H" $((inner - TITLE_DASHES - tw - 2))
-	printf '%*s%s%s%s %s%s%s %s%s%s%s\n' "$pad" '' \
+	printf -v line '%s%s%s %s%s%s %s%s%s' \
 		"$C_ACCENT" "$B_TL" "$top" \
 		"$C_BOLD" "$title" "$C_RESET$C_ACCENT" \
 		"$_R" "$B_TR" "$C_RESET"
+	BOX_LINES+=("$line")
 
 	for ((i = 0; i < n; i++)); do
 		label=${LABELS[i]} value=${VALUES[i]} icon=${ICONS[i]}
@@ -548,27 +818,61 @@ render_box() {
 		((gap < 0)) && gap=0
 		_rep ' ' "$gap"
 
-		printf '%*s%s%s ' "$pad" '' "$C_ACCENT" "$B_V"
-		((USE_ICONS)) && printf '%s ' "$icon"
-		printf '%s%s%s%s%s %s%s%s\n' \
-			"$label" "$_R" "$C_RESET$C_BOLD" "$value" "$C_RESET" \
+		printf -v line '%s%s ' "$C_ACCENT" "$B_V"
+		((USE_ICONS)) && printf -v line '%s%s ' "$line" "$icon"
+		printf -v line '%s%s%s%s%s%s %s%s%s' \
+			"$line" "$label" "$_R" "$C_RESET$C_BOLD" "$value" "$C_RESET" \
 			"$C_ACCENT" "$B_V" "$C_RESET"
+		BOX_LINES+=("$line")
 	done
 
 	_rep "$B_H" "$inner"
-	printf '%*s%s%s%s%s%s\n' "$pad" '' "$C_ACCENT" "$B_BL" "$_R" "$B_BR" "$C_RESET"
+	printf -v line '%s%s%s%s%s' "$C_ACCENT" "$B_BL" "$_R" "$B_BR" "$C_RESET"
+	BOX_LINES+=("$line")
+
+	BOX_W=$((inner + 2))
+}
+
+render_side() {
+	local i ln=${#LOGO_LINES[@]} bn=${#BOX_LINES[@]}
+	local n pad ltop btop li bi lpart bpart lw
+
+	n=$((ln > bn ? ln : bn))
+	ltop=$(((n - ln) / 2))
+	btop=$(((n - bn) / 2))
+	pad=$(((COLS - LOGO_W - LOGO_GAP - BOX_W) / 2))
+	((pad < 0)) && pad=0
+
+	for ((i = 0; i < n; i++)); do
+		li=$((i - ltop))
+		bi=$((i - btop))
+		lpart= bpart=
+		((li >= 0 && li < ln)) && lpart=${LOGO_LINES[li]}
+		((bi >= 0 && bi < bn)) && bpart=${BOX_LINES[bi]}
+		if [[ -z $bpart ]]; then
+			printf '%*s%s\n' "$pad" '' "$lpart"
+		else
+			vwidth "$lpart"
+			lw=$_W
+			printf '%*s%s%*s%s\n' "$pad" '' "$lpart" $((LOGO_W - lw + LOGO_GAP)) '' "$bpart"
+		fi
+	done
 }
 
 render_dots() {
-	local i line= gap=$DOT_GAP
-	while ((${#gap} > 0 && 8 + 7 * ${#gap} > COLS)); do gap=${gap:1}; done
-	for i in {0..7}; do
-		if ((USE_COLOR)); then
-			line+=$'\e[1;3'$i'm'$DOT$C_RESET
+	local i n=16 line= gap=$DOT_GAP
+	((NCOLORS >= 16)) || n=8
+	((n > COLS)) && n=8
+	while ((${#gap} > 0 && n + (n - 1) * ${#gap} > COLS)); do gap=${gap:1}; done
+	for ((i = 0; i < n; i++)); do
+		if ((NCOLORS >= 16)); then
+			line+=$'\e[38;5;'$i'm'$DOT$C_RESET
+		elif ((USE_COLOR)); then
+			line+=$'\e[3'$i'm'$DOT$C_RESET
 		else
 			line+=$DOT
 		fi
-		((i < 7)) && line+=$gap
+		((i < n - 1)) && line+=$gap
 	done
 	center "$line"
 }
@@ -582,10 +886,22 @@ main() {
 	setup_colors
 	collect_info
 
+	((USE_LOGO)) || SIDE=0
+	((USE_LOGO)) && build_logo_lines
+	((SIDE && COLS - LOGO_W - LOGO_GAP < SIDE_MIN_BOX)) && SIDE=0
+
 	blank 1
-	render_logo
-	blank "$BLANK_AFTER_LOGO"
-	render_box
+	if ((SIDE)); then
+		build_box_lines $((COLS - LOGO_W - LOGO_GAP))
+		render_side
+	else
+		if ((USE_LOGO)); then
+			print_block "$LOGO_W" "${LOGO_LINES[@]}"
+			blank "$BLANK_AFTER_LOGO"
+		fi
+		build_box_lines "$COLS"
+		print_block "$BOX_W" "${BOX_LINES[@]}"
+	fi
 	blank "$BLANK_BEFORE_DOTS"
 	render_dots
 	blank 1
