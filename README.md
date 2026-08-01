@@ -44,13 +44,13 @@ to run it as `cetch` from anywhere.
 
 **On NixOS (flakes)**
 
-either run it using nix run like so:
+Either run it using nix:
 
 ```
 nix run github:willcannotcode/cetch
 ```
 
-or install it system-wide by adding it to your inputs:
+Or install it system-wide by adding it to your inputs:
 
 ```
 {
@@ -74,7 +74,7 @@ or install it system-wide by adding it to your inputs:
 }
 ```
 
-then in configuration.nix add:
+...Then in configuration.nix add:
 
 
 ```
