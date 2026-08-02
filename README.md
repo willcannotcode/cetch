@@ -88,27 +88,32 @@ Or install it system-wide by adding it to your inputs:
 ## Usage
 
 ```
-cetch.sh [options]
-
-  -w, --width N    render as if the terminal were N columns wide
-      --no-color   monochrome output
-      --no-icons   drop the Nerd Font glyphs (plain labels)
-  -h, --help       show the help text
+cetch [options]
+-w, --width N       render as if the terminal were N columns wide
+--accent        use terminal's accent color
+--color HEX     use a specific color (#7aa2f7, 7aa2f7 or #7af)
+--side [N]      place the logo to the left of the box, N extra columns clear of it (default 0)
+--no-logo       draw the box on its own
+--no-color      monochrome output
+--no-icons      drop the Nerd Font glyphs (plain labels)
+--list-distros  print the logo names CETCH_DISTRO accepts
+-h, --help          show this message
 ```
 
 ## Configuration
-
 Everything is an environment variable, so you can just add overrides to your shell rc file.
 
-| Variable            | Effect                                                      |
-| ------------------- | ------------------------------------------------------------ |
-| `CETCH_DISTRO`      | force a logo (`arch`, `cachyos`, `debian`, `ubuntu`, `fedora`, `gentoo`, `mint`, `linux`) |
-| `CETCH_ICON_CELLS`  | set to `2` if your terminal draws Nerd Font icons two cells wide |
-| `CETCH_TITLE`       | box title, default `System Info`                             |
-| `CETCH_MIN_WIDTH`   | minimum box width, default `42`                               |
-| `CETCH_DISK`        | filesystem to report on for the Disk row, default `/`         |
-| `CETCH_COLS`        | same as `--width`                                             |
-| `NO_COLOR`          | disable color output ([no-color.org](https://no-color.org))   |
+| Variable | Effect |
+| :--- | :--- |
+| `CETCH_DISTRO` | force a logo (see `--list-distros` for accepted values) |
+| `CETCH_ROWS` | comma-separated list of rows to display and their order.<br>Options: `user, kernel, os, wm, packages, disk, uptime, shell, memory, cpu, ip`<br>Default: `user,kernel,os,wm,packages,disk` |
+| `CETCH_ICON_CELLS` | set to `2` if your terminal draws Nerd Font icons two cells wide |
+| `CETCH_TITLE` | box title, default `System Info` |
+| `CETCH_MIN_WIDTH` | minimum box width, default `42` |
+| `CETCH_DISK` | filesystem to report on for the Disk row, default `/` |
+| `CETCH_COLS` | same as `--width` |
+| `CETCH_COLOR` | same as `--color` (e.g., `#7aa2f7`) |
+| `NO_COLOR` | disable color output ([no-color.org](https://no-color.org)) |
 
 ## Supported logos
 `Arch, CachyOS, Debian, Ubuntu, Fedora, Gentoo, Mint, NixOS, OpenSUSE, Void, Alpine, Manjaro` all get their own logo.
