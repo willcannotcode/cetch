@@ -3,7 +3,7 @@
 A small terminal fastfetch-esque tool, in a single bash script, all horizontally centered.
 
 <img width="628" height="430" alt="image" src="https://github.com/user-attachments/assets/2b90fdf7-222f-4d3e-a963-bcd709e5e501" />
-<img width="791" height="318" alt="image" src="https://github.com/user-attachments/assets/839ed34a-2126-4bf5-91b6-3612946b4c4b" />
+<img width="840" height="308" alt="image" src="https://github.com/user-attachments/assets/0b67df72-2d63-4317-82b7-dd04583e3581" />
 
 ## Why?
 
