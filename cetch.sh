@@ -214,18 +214,22 @@ setup_term() {
 }
 
 get_term_accent_color() {
-	local old_stty= reply=
+	local old_stty= reply= char=
 	{
 		old_stty=$(stty -g < /dev/tty) &&
 		stty raw -echo < /dev/tty &&
 		printf '\e]12;?\a' > /dev/tty &&
-		IFS= read -r -t 0.3 -d $'\a' reply < /dev/tty
+		while IFS= read -r -n 1 -t 0.3 char < /dev/tty; do
+			reply+="$char"
+			[[ "$char" == $'\a' || "$char" == "\\" ]] && break
+		done
 		[[ -n $old_stty ]] && stty "$old_stty" < /dev/tty
 	} 2>/dev/null
 
 	[[ -n $reply ]] || return 1
 	osc_rgb_to_hex "${reply#*rgb:}"
 }
+
 
 osc_rgb_to_hex() {
 	local part out=
