@@ -100,7 +100,9 @@ Or install it system-wide by adding it to your inputs:
 | | `--accent` | Use terminal's accent color |
 | | `--color HEX` | Use a specific color (`#7aa2f7`, `7aa2f7`, or `#7af`) |
 | | `--side [N]` | Place the logo to the left of the box, `N` extra columns clear of it (default 0) |
-| | `--style STYLE` | Box corner style: `rounded` (default) or `boxy` |
+| | `--style STYLE` | Box style: `rounded` (default), `boxy`, or `plain` (to drop the box entirely) |
+| | `--palette NAME` | Colour swatches under the box: `dots` (default), `blocks`, or `none` |
+| | `--logo-file F` | Draw the ascii art from file F instead of the built-in logo |
 | | `--no-logo` | Draw the box on its own |
 | | `--no-color` | Monochrome output (`--colour`/`--no-colour` also work) |
 | | `--no-icons` | Drop the Nerd Font glyphs (plain labels) |
@@ -113,11 +115,15 @@ Everything is an environment variable, so you can just add overrides to your she
 | Variable | Effect |
 | :--- | :--- |
 | `CETCH_DISTRO` | force a logo (see `--list-distros` for accepted values) |
-| `CETCH_ROWS` | comma-separated list of rows to display and their order.<br>Options: `user, kernel, os, wm, packages, disk, uptime, shell, memory, cpu, ip`<br>Default: `user,kernel,os,wm,packages,disk` |
+| `CETCH_ROWS` | comma-separated list of rows to display and their order.<br>Options: `user, kernel, os, wm, packages, disk, uptime, shell, memory, cpu, temp, ip`<br>Default: `user,kernel,os,wm,packages,disk` |
 | `CETCH_ICON_CELLS` | set to `2` if your terminal draws Nerd Font icons two cells wide |
 | `CETCH_TITLE` | box title, default `System Info` |
 | `CETCH_MIN_WIDTH` | minimum box width, default `42` |
+| `CETCH_STYLE` | same as `--style` |
+| `CETCH_PALETTE` | same as `--palette` |
+| `CETCH_LOGO_FILE` | same as `--logo-file` |
 | `CETCH_DISK` | filesystem to report on for the Disk row, default `/` |
+| `CETCH_TEMP_ZONE` | sysfs file for the temp row, default `/sys/class/thermal/thermal_zone0/temp` |
 | `CETCH_COLS` | same as `--width` |
 | `CETCH_COLOR` | same as `--color` (e.g., `#7aa2f7`) |
 | `NO_COLOR` | disable color output ([no-color.org](https://no-color.org)) |
