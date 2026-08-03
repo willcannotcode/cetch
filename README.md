@@ -89,16 +89,20 @@ Or install it system-wide by adding it to your inputs:
 ## Usage
 
 ```
-cetch [options]
--w, --width N     render as if the terminal were N columns wide
---accent          use terminal's accent color
---color HEX       use a specific color (#7aa2f7, 7aa2f7 or #7af)
---side [N]        place the logo to the left of the box, N extra columns clear of it (default 0)
---no-logo         draw the box on its own
---no-color        monochrome output
---no-icons        drop the Nerd Font glyphs (plain labels)
---list-distros    print the logo names CETCH_DISTRO accepts
--h, --help        show this message
+Usage: cetch.sh [options]
+
+Options:
+  -w, --width N       render as if the terminal were N columns wide
+      --accent        use terminal's accent color
+      --color HEX     use a specific color (#7aa2f7, 7aa2f7 or #7af)
+      --side [N]      place the logo to the left of the box, N extra
+                      columns clear of it (default 0)
+      --style STYLE   box corner style: rounded (default) or boxy
+      --no-logo       draw the box on its own
+      --no-color      monochrome output (--colour/--no-colour also work)
+      --no-icons      drop the Nerd Font glyphs (plain labels)
+      --list-distros  print the logo names CETCH_DISTRO accepts
+  -h, --help          show this message
 ```
 
 ## Configuration
