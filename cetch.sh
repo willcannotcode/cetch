@@ -4,6 +4,36 @@ set -u
 shopt -s extglob
 shopt -s nullglob
 
+# ~/.config/cetch/cetch.conf: lines are either "CETCH_VAR=value" (applied
+# only if that variable isn't already set in the environment) or anything
+# else, which is tokenized and treated as if typed on the command line
+# (ahead of the real argv, so real flags still win).
+CONFIG_FILE=${HOME:-}/.config/cetch/cetch.conf
+CONFIG_ARGS=()
+
+load_config() {
+	[[ -r $CONFIG_FILE ]] || return 0
+
+	local line key val
+	local -a words
+	while IFS= read -r line || [[ -n $line ]]; do
+		[[ $line =~ ^[[:space:]]*(#.*)?$ ]] && continue
+
+		if [[ $line =~ ^[[:space:]]*(CETCH_[A-Za-z0-9_]+)=(.*)$ ]]; then
+			key=${BASH_REMATCH[1]}
+			val=${BASH_REMATCH[2]}
+			val=${val#[\"\']}
+			val=${val%[\"\']}
+			[[ -v "$key" ]] || export "$key=$val"
+		else
+			read -ra words <<<"$line"
+			((${#words[@]})) && CONFIG_ARGS+=("${words[@]}")
+		fi
+	done <"$CONFIG_FILE"
+}
+
+load_config
+
 BOX_TITLE=${CETCH_TITLE:-System Info}
 BOX_MIN_WIDTH=${CETCH_MIN_WIDTH:-42}
 LABEL_GAP=2
@@ -14,7 +44,7 @@ ACCENT_HEX=${CETCH_COLOR:-}
 
 DEFAULT_ROWS=user,kernel,os,wm,packages,disk
 ROWS=${CETCH_ROWS:-$DEFAULT_ROWS}
-DISTROS='arch cachyos debian ubuntu fedora gentoo mint nixos opensuse void alpine manjaro linux'
+DISTROS='arch cachyos debian ubuntu fedora gentoo mint nixos opensuse void alpine manjaro macos linux'
 
 BLANK_AFTER_LOGO=1
 BLANK_BEFORE_DOTS=1
@@ -30,6 +60,7 @@ ICON_CELLS=${CETCH_ICON_CELLS:-1}
 ((ICON_CELLS > 4)) && ICON_CELLS=4
 
 B_TL=╭ B_TR=╮ B_BL=╰ B_BR=╯ B_V=│ B_H=─
+STYLE=${CETCH_STYLE:-rounded}
 
 ICON_USER=$'\xef\x80\x87'
 ICON_KERNEL=$'\xf3\xb0\x8c\xbd'
@@ -63,6 +94,7 @@ Options:
       --color HEX     use a specific color (#7aa2f7, 7aa2f7 or #7af)
       --side [N]      place the logo to the left of the box, N extra
                       columns clear of it (default 0)
+      --style STYLE   box corner style: rounded (default) or boxy
       --no-logo       draw the box on its own
       --no-color      monochrome output
       --no-icons      drop the Nerd Font glyphs (plain labels)
@@ -78,10 +110,15 @@ Environment:
   CETCH_ICON_CELLS=2  if your terminal draws Nerd Font icons two cells wide
   CETCH_TITLE=text    box title (default "System Info")
   CETCH_MIN_WIDTH=n   minimum box width (default 42)
+  CETCH_STYLE=name    same as --style
   CETCH_DISK=path     filesystem for the disk row (default /)
   CETCH_COLS=n        same as --width
   CETCH_COLOR=hex     same as --color
   NO_COLOR=1          disable colour (https://no-color.org)
+
+Config file:
+  ~/.config/cetch/cetch.conf, if present, is read before argv: each line
+  is either CETCH_VAR=value or a flag, as if typed on the command line.
 EOF
 }
 
@@ -122,6 +159,11 @@ parse_args() {
 				SIDE_PAD=0
 			fi
 			;;
+		--style)
+			STYLE=${2:-}
+			shift
+			;;
+		--style=*) STYLE=${1#*=} ;;
 		--accent) USE_ACCENT=1 ;;
 		--list-distros)
 			list_distros
@@ -213,23 +255,30 @@ setup_term() {
 	fi
 }
 
+setup_style() {
+	case $STYLE in
+	rounded) ;;
+	boxy) B_TL=┌ B_TR=┐ B_BL=└ B_BR=┘ ;;
+	*)
+		printf 'cetch: warning: ignoring invalid --style value %q, using rounded\n' "$STYLE" >&2
+		STYLE=rounded
+		;;
+	esac
+}
+
 get_term_accent_color() {
-	local old_stty= reply= char=
+	local old_stty= reply=
 	{
 		old_stty=$(stty -g < /dev/tty) &&
 		stty raw -echo < /dev/tty &&
 		printf '\e]12;?\a' > /dev/tty &&
-		while IFS= read -r -n 1 -t 0.3 char < /dev/tty; do
-			reply+="$char"
-			[[ "$char" == $'\a' || "$char" == "\\" ]] && break
-		done
+		IFS= read -r -t 0.3 -d $'\a' reply < /dev/tty
 		[[ -n $old_stty ]] && stty "$old_stty" < /dev/tty
 	} 2>/dev/null
 
 	[[ -n $reply ]] || return 1
 	osc_rgb_to_hex "${reply#*rgb:}"
 }
-
 
 osc_rgb_to_hex() {
 	local part out=
@@ -318,6 +367,7 @@ read_os_release() {
 distro_family() {
 	local id=${CETCH_DISTRO:-$OS_ID}
 	case ${id,,} in
+	macos | osx | darwin) printf macos ;;
 	arch | archarm | arcolinux | artix) printf arch ;;
 	cachyos) printf cachyos ;;
 	debian | raspbian | devuan) printf debian ;;
@@ -331,7 +381,11 @@ distro_family() {
 	alpine | postmarketos) printf alpine ;;
 	manjaro | manjaro-arm) printf manjaro ;;
 	'')
-		printf linux
+		if [[ $(uname -s 2>/dev/null) == Darwin ]]; then
+			printf macos
+		else
+			printf linux
+		fi
 		;;
 	*)
 		case ${OS_ID_LIKE,,} in
@@ -479,6 +533,18 @@ ART
 |||| ||| |||
 ART
 		;;
+	macos)
+		LOGO_SGR='38;5;255' LOGO_SGR8='37'
+		mapfile -t LOGO <<'ART'
+       .:
+    _ :'_
+ .'` `-' ``.
+:        .-'
+:       :
+ :       `-;
+  `._.-._.'
+ART
+		;;
 	*)
 		LOGO_SGR=${OS_ANSI:-'38;5;250'} LOGO_SGR8=${OS_ANSI:-'37'}
 		mapfile -t LOGO <<'ART'
@@ -507,6 +573,12 @@ get_kernel() {
 }
 
 get_os() {
+	if [[ -z $OS_PRETTY && -z $OS_NAME && $(uname -s 2>/dev/null) == Darwin ]]; then
+		local ver=
+		hash sw_vers 2>/dev/null && ver=$(sw_vers -productVersion 2>/dev/null)
+		printf 'macOS%s %s' "${ver:+ $ver}" "${HOSTTYPE:-$(uname -m)}"
+		return
+	fi
 	printf '%s %s' "${OS_PRETTY:-${OS_NAME:-Linux}}" "${HOSTTYPE:-$(uname -m)}"
 }
 
@@ -592,6 +664,12 @@ get_packages() {
 
 	d=(/var/lib/flatpak/app/*/ "${HOME:-}"/.local/share/flatpak/app/*/)
 	((${#d[@]})) && out+="${out:+, }${#d[@]} (flatpak)"
+
+	d=(/opt/homebrew/Cellar/*/ /usr/local/Cellar/*/ /opt/homebrew/Caskroom/*/ /usr/local/Caskroom/*/ /home/linuxbrew/.linuxbrew/Cellar/*/)
+	((${#d[@]})) && out+="${out:+, }${#d[@]} (brew)"
+
+        d=(/nix/store/*/)
+        ((${#d[@]})) && out+="${out:+, }${#d[@]} (nix)"
 
 	printf '%s' "${out:-unknown}"
 }
@@ -898,7 +976,8 @@ render_dots() {
 
 
 main() {
-	parse_args "$@"
+	parse_args ${CONFIG_ARGS[@]+"${CONFIG_ARGS[@]}"} "$@"
+	setup_style
 	setup_term
 	read_os_release
 	load_logo "$(distro_family)"
