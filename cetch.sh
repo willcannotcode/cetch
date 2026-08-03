@@ -52,7 +52,11 @@ LOGO_GAP=3
 SIDE_MIN_BOX=20
 
 DOT=●
+BLOCK=██
 DOT_GAP=' '
+PALETTE=${CETCH_PALETTE:-dots}
+
+TEMP_FILE=${CETCH_TEMP_ZONE:-/sys/class/thermal/thermal_zone0/temp}
 
 ICON_CELLS=${CETCH_ICON_CELLS:-1}
 [[ $ICON_CELLS == +([0-9]) ]] || ICON_CELLS=1
@@ -73,10 +77,12 @@ ICON_SHELL=$'\xef\x84\xa0'
 ICON_MEM=$'\xf3\xb0\x8d\x9b'
 ICON_CPU=$'\xef\x8b\x9b'
 ICON_IP=$'\xef\x82\xac'
+ICON_TEMP=$'\xef\x8b\x87'
 
 USE_COLOR=1
 USE_ICONS=1
 USE_LOGO=1
+LOGO_FILE=${CETCH_LOGO_FILE:-}
 SIDE=0
 SIDE_PAD=0
 COLS_OVERRIDE=${CETCH_COLS:-}
@@ -94,7 +100,12 @@ Options:
       --color HEX     use a specific color (#7aa2f7, 7aa2f7 or #7af)
       --side [N]      place the logo to the left of the box, N extra
                       columns clear of it (default 0)
-      --style STYLE   box corner style: rounded (default) or boxy
+      --style STYLE   box style: rounded (default), boxy, or plain
+                      to drop the box and just list the rows
+      --palette NAME  colour swatches under the box: dots (default),
+                      blocks, or none to leave them out
+      --logo-file F   draw the ascii art in file F instead of the
+                      built-in logo
       --no-logo       draw the box on its own
       --no-color      monochrome output (--colour/--no-colour also work)
       --no-icons      drop the Nerd Font glyphs (plain labels)
@@ -106,12 +117,16 @@ Environment:
   CETCH_ROWS=a,b,c    pick the rows and their order (default:
                       user,kernel,os,wm,packages,disk); choose from
                       user, kernel, os, wm, packages, disk, uptime,
-                      shell, memory, cpu, ip
+                      shell, memory, cpu, temp, ip
   CETCH_ICON_CELLS=2  if your terminal draws Nerd Font icons two cells wide
   CETCH_TITLE=text    box title (default "System Info")
   CETCH_MIN_WIDTH=n   minimum box width (default 42)
   CETCH_STYLE=name    same as --style
+  CETCH_PALETTE=name  same as --palette
+  CETCH_LOGO_FILE=f   same as --logo-file
   CETCH_DISK=path     filesystem for the disk row (default /)
+  CETCH_TEMP_ZONE=f   sysfs file for the temp row (default
+                      /sys/class/thermal/thermal_zone0/temp)
   CETCH_COLS=n        same as --width
   CETCH_COLOR=hex     same as --color
   NO_COLOR=1          disable colour (https://no-color.org)
@@ -164,6 +179,16 @@ parse_args() {
 			shift
 			;;
 		--style=*) STYLE=${1#*=} ;;
+		--palette)
+			PALETTE=${2:-}
+			shift
+			;;
+		--palette=*) PALETTE=${1#*=} ;;
+		--logo-file)
+			LOGO_FILE=${2:-}
+			shift
+			;;
+		--logo-file=*) LOGO_FILE=${1#*=} ;;
 		--accent) USE_ACCENT=1 ;;
 		--list-distros)
 			list_distros
@@ -259,9 +284,18 @@ setup_style() {
 	case $STYLE in
 	rounded) ;;
 	boxy) B_TL=┌ B_TR=┐ B_BL=└ B_BR=┘ ;;
+	plain) ;; # no borders to pick characters for
 	*)
 		printf 'cetch: warning: ignoring invalid --style value %q, using rounded\n' "$STYLE" >&2
 		STYLE=rounded
+		;;
+	esac
+
+	case $PALETTE in
+	dots | blocks | none) ;;
+	*)
+		printf 'cetch: warning: ignoring invalid --palette value %q, using dots\n' "$PALETTE" >&2
+		PALETTE=dots
 		;;
 	esac
 }
@@ -559,6 +593,40 @@ ART
 }
 
 
+# replace the built-in art with a file's contents; the colour still comes
+# from the detected distro (or --color), so only the shape changes
+load_logo_file() {
+	local f=$1 i n start=0
+	local -a lines
+
+	# the config file hands us words the shell never got to expand
+	[[ $f == '~' || $f == '~/'* ]] && f=${HOME:-~}${f#'~'}
+
+	if [[ -d $f || ! -r $f ]]; then
+		printf 'cetch: warning: cannot read logo file %q, using the built-in logo\n' "$1" >&2
+		return 1
+	fi
+
+	mapfile -t lines <"$f"
+	for i in ${lines[@]+"${!lines[@]}"}; do
+		lines[i]=${lines[i]%$'\r'}
+		lines[i]=${lines[i]%%*([[:space:]])}
+	done
+
+	# trim blank lines top and bottom so the art still lines up with the box
+	n=${#lines[@]}
+	while ((start < n)) && [[ -z ${lines[start]} ]]; do ((start++)); done
+	while ((n > start)) && [[ -z ${lines[n - 1]} ]]; do ((n--)); done
+
+	((n > start)) || {
+		printf 'cetch: warning: logo file %q has no art in it, using the built-in logo\n' "$1" >&2
+		return 1
+	}
+
+	LOGO=("${lines[@]:start:n - start}")
+}
+
+
 get_user() {
 	local user=${USER:-${LOGNAME:-}} host=
 	[[ -n $user ]] || user=$(id -un 2>/dev/null)
@@ -767,6 +835,21 @@ get_cpu() {
 	printf '%s' "$model"
 }
 
+get_temp() {
+	local raw= sign=
+	[[ -r $TEMP_FILE ]] && read -r raw <"$TEMP_FILE" 2>/dev/null
+	[[ $raw == ?(-)+([0-9]) ]] || {
+		printf 'unknown'
+		return
+	}
+	# sysfs reports millidegrees
+	((raw < 0)) && {
+		sign=-
+		raw=$((-raw))
+	}
+	printf '%s%d.%d°C' "$sign" $((raw / 1000)) $((raw % 1000 / 100))
+}
+
 get_ip() {
 	local name dest iface= addr=
 	if [[ -r /proc/net/route ]]; then
@@ -819,6 +902,7 @@ add_row() {
 	shell) row "$ICON_SHELL" Shell "$(get_shell)" ;;
 	memory | mem | ram) row "$ICON_MEM" Memory "$(get_memory)" ;;
 	cpu) row "$ICON_CPU" CPU "$(get_cpu)" ;;
+	temp | temperature | cputemp) row "$ICON_TEMP" Temp "$(get_temp)" ;;
 	ip | localip) row "$ICON_IP" 'Local IP' "$(get_ip)" ;;
 	'') ;;
 	*) printf 'cetch: warning: skipping unknown row %q (try --help)\n' "$1" >&2 ;;
@@ -852,11 +936,60 @@ build_logo_lines() {
 	LOGO_LINES=()
 	LOGO_W=0
 	for line in "${LOGO[@]}"; do
-		vwidth "$line"
+		# a --logo-file can be any width, so keep it inside the terminal
+		_fit "$line" "$COLS"
+		LOGO_LINES+=("$C_BOLD$C_ACCENT$_S$C_RESET")
+		vwidth "$_S"
 		((_W > LOGO_W)) && LOGO_W=$_W
 	done
-	for line in "${LOGO[@]}"; do
-		LOGO_LINES+=("$C_BOLD$C_ACCENT$line$C_RESET")
+}
+
+# no borders: the title on its own line, then the rows with their values
+# left-aligned in one column instead of pushed out to a right edge
+build_plain_lines() {
+	local maxw=$1
+	local i n=${#LABELS[@]} icon_w=0 labelw=0 avail lw
+	local icon label value line
+
+	BOX_LINES=()
+	BOX_W=0
+
+	((USE_ICONS)) && icon_w=$((ICON_CELLS + 2))
+
+	for ((i = 0; i < n; i++)); do
+		[[ -n ${VALUES[i]} ]] || continue
+		vwidth "${LABELS[i]}"
+		((_W > labelw)) && labelw=$_W
+	done
+
+	avail=$((maxw - icon_w - labelw - LABEL_GAP))
+	((avail < 1)) && avail=1
+
+	_fit "$BOX_TITLE" "$maxw"
+	printf -v line '%s%s%s%s' "$C_BOLD" "$C_ACCENT" "$_S" "$C_RESET"
+	BOX_LINES+=("$line")
+	vwidth "$_S"
+	BOX_W=$_W
+
+	for ((i = 0; i < n; i++)); do
+		label=${LABELS[i]} value=${VALUES[i]} icon=${ICONS[i]}
+		[[ -n $value ]] || continue
+
+		_fit "$value" "$avail"
+		value=$_S
+		vwidth "$label"
+		lw=$_W
+		_rep ' ' $((labelw - lw + LABEL_GAP))
+
+		printf -v line '%s' "$C_ACCENT"
+		((USE_ICONS)) && printf -v line '%s%s  ' "$line" "$icon"
+		printf -v line '%s%s%s%s%s%s' \
+			"$line" "$label" "$_R" "$C_RESET$C_BOLD" "$value" "$C_RESET"
+		BOX_LINES+=("$line")
+
+		vwidth "$value"
+		((icon_w + labelw + LABEL_GAP + _W > BOX_W)) &&
+			BOX_W=$((icon_w + labelw + LABEL_GAP + _W))
 	done
 }
 
@@ -864,6 +997,11 @@ build_box_lines() {
 	local maxw=$1
 	local i n=${#LABELS[@]} icon_w=0 inner=0 need tw lw vw gap
 	local icon label value line
+
+	if [[ $STYLE == plain ]]; then
+		build_plain_lines "$maxw"
+		return
+	fi
 
 	BOX_LINES=()
 
@@ -958,20 +1096,27 @@ render_side() {
 	done
 }
 
-render_dots() {
-	local i line= gap=$DOT_GAP
-	while ((${#gap} > 0 && 8 + 7 * ${#gap} > COLS)); do gap=${gap:1}; done
+render_palette() {
+	local i sw line= gap=$DOT_GAP swatch=$DOT
+
+	[[ $PALETTE == none ]] && return 0
+	# blocks butt up against each other to read as one continuous bar
+	[[ $PALETTE == blocks ]] && swatch=$BLOCK gap=
+
+	vwidth "$swatch"
+	sw=$_W
+	while ((${#gap} > 0 && 8 * sw + 7 * ${#gap} > COLS)); do gap=${gap:1}; done
 	for i in {0..7}; do
 		if ((NCOLORS >= 16)); then
-			line+=$'\e[38;5;'$((i + 8))'m'$DOT$C_RESET
+			line+=$'\e[38;5;'$((i + 8))'m'$swatch$C_RESET
 		elif ((USE_COLOR)); then
-			line+=$'\e[1;3'$i'm'$DOT$C_RESET
+			line+=$'\e[1;3'$i'm'$swatch$C_RESET
 		else
-			line+=$DOT
+			line+=$swatch
 		fi
 		((i < 7)) && line+=$gap
 	done
-	center "$line"
+	center "$line" $((8 * sw + 7 * ${#gap}))
 }
 
 
@@ -981,6 +1126,7 @@ main() {
 	setup_term
 	read_os_release
 	load_logo "$(distro_family)"
+	[[ -n $LOGO_FILE ]] && load_logo_file "$LOGO_FILE"
 	setup_colors
 	collect_info
 
@@ -1001,8 +1147,10 @@ main() {
 		build_box_lines "$COLS"
 		print_block "$BOX_W" "${BOX_LINES[@]}"
 	fi
-	blank "$BLANK_BEFORE_DOTS"
-	render_dots
+	if [[ $PALETTE != none ]]; then
+		blank "$BLANK_BEFORE_DOTS"
+		render_palette
+	fi
 	blank 1
 }
 
