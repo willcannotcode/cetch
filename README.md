@@ -2,7 +2,9 @@
 
 A small terminal fastfetch-esque tool, in a single bash script, all horizontally centered with dynamic sizing to avoid horrible line wraps.
 
-<img width="910" height="916" alt="image" src="https://github.com/user-attachments/assets/a9ee84a6-8344-497f-bf41-e86009ecb11d" />
+<img width="737" height="443" alt="image" src="https://github.com/user-attachments/assets/e78b8de6-3d2d-4ee8-a0c8-384917c6a33e" />
+<img width="903" height="837" alt="image" src="https://github.com/user-attachments/assets/d219f77f-351e-49b8-bafc-522e9bc4baaa" />
+
 
 ## Why?
 
