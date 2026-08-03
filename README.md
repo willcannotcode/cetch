@@ -117,10 +117,73 @@ Everything is an environment variable, so you can just add overrides to your she
 | `NO_COLOR` | disable color output ([no-color.org](https://no-color.org)) |
 
 ## Supported logos
-`Arch, CachyOS, Debian, Ubuntu, Fedora, Gentoo, Mint, NixOS, OpenSUSE, Void, Alpine, Manjaro` all get their own logo.
+`Arch, CachyOS, Debian, Ubuntu, Fedora, Gentoo, Mint, NixOS, OpenSUSE, Void, Alpine, Manjaro, MacOS` all get their own logo.
 Anything else falls back to a generic Tux(ish) face colored from
 `/etc/os-release`'s `ANSI_COLOR`, so it still looks reasonable on distros
 that I haven't hardcoded.
+
+## Config file
+
+`cetch` reads `~/.config/cetch/cetch.conf` before it looks at anything you
+typed.
+
+Each line is one of:
+
+- **`CETCH_VAR=value`** - sets one of the environment variables `cetch`
+  already understands (see `cetch --help` for the full list). Values can
+  also be wrapped in quotes, which is useful for anything with spaces:
+
+  ```
+  CETCH_TITLE="Will's Desktop"
+  CETCH_ROWS=user,os,packages,disk
+  ```
+
+  This only affects the variable if it isn't *already* set in your shell
+  environment, so `export CETCH_COLOR=...` in your `.bashrc`/`.zshrc` will always take effect over whatever the config file says.
+
+- **Anything else** is treated exactly like if you 
+  typed it in the terminal, before your actual arguments. You can put
+  one flag per line or several on the same line:
+
+  ```
+  --style boxy
+  --no-icons
+  ```
+
+  Because these are applied before your real arguments, a flag you type in
+  the terminal always overrides the matching line in the config file.
+
+Blank lines and lines starting with `#` are ignored:
+
+```
+# accent + box shape
+CETCH_COLOR=7aa2f7
+--style boxy
+
+# cut down on some of the info
+CETCH_ROWS=user,os,packages,disk
+```
+
+### Hierarchy, in order from most favoured to least.
+
+1. Flags typed on in the terminal
+2. `--flag` lines in the config file (applied as if typed, in file order)
+3. `CETCH_VAR=value` variables already exported in your shell
+4. `CETCH_VAR=value` lines in the config file
+5. Whatever the default cetch value is
+
+One thing worth knowing: a `CETCH_VAR` in your shell beats the `CETCH_VAR` in the config file, but it does **not** beat a `--flag` set in the config file, since flags always apply unconditionally, as if you had typed it yourself. If you want a config-file setting to win no matter what your shell has set, write it as a flag instead of a variable.
+
+### Example
+
+```
+# ~/.config/cetch/cetch.conf
+CETCH_TITLE="will@gentoo"
+CETCH_ROWS=user,kernel,os,wm,packages,disk,uptime
+--style boxy
+--color 7aa2f7
+```
+
 
 ## License
 
