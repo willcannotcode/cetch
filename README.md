@@ -47,7 +47,7 @@ Most fetch tools show a huge logo and pretty verbose information, which looks gr
     };
   
     # example config of how to handle your outputs
-    outputs = { self, nixpkgs, cetch, ... }@inputs: {
+    outputs = { self, nixpkgs, ... }@inputs: {
       nixosConfigurations.your-hostname = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = { inherit inputs; };
