@@ -14,6 +14,8 @@ Most fetch tools show a huge logo and pretty verbose information, which looks gr
   <img width="1027" height="1018" alt="image" src="https://github.com/user-attachments/assets/3f1639b2-9686-40af-9ade-0cbbebc95f56" />
 </details>
 
+---
+
 ## Requirements
 
 - bash 4.0+
@@ -22,14 +24,59 @@ Most fetch tools show a huge logo and pretty verbose information, which looks gr
 
 ## Install
 
-On Arch (or anything with an AUR helper):
+**On NixOS (flakes)**
+<details>
+  <summary>NixOS Installation</summary>
+  Either run it using nix:
+
+  ```
+  nix run github:willcannotcode/cetch
+  ```
+  
+  Or install it system-wide by adding it to your inputs:
+  
+  ```
+  {
+    inputs = {
+      nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  
+      # Add this input to your flake
+      cetch.url = "github:willcannotcode/cetch";
+    };
+  
+    # example config of how to handle your outputs
+    outputs = { self, nixpkgs, cetch, ... }@inputs: {
+      nixosConfigurations.your-hostname = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = { inherit inputs; };
+        modules = [
+          ./configuration.nix
+        ];
+      };
+    };
+  }
+  ```
+  
+  ...Then in configuration.nix add:
+  
+  
+  ```
+  { pkgs, inputs, ... }: {
+    environment.systemPackages = [
+      inputs.cetch.packages.${pkgs.stdenv.hostPlatform.system}.default
+    ];
+  }
+  ```
+</details>
+
+**On Arch (or anything with an AUR helper):**
 
 *Please note that the AUR is down because of the massive amounts of malware being pushed into it, so the aur package is stuck at v1.2.0 until this gets resolved*
 ```
 yay -Sy cetch
 ```
 
-Or grab the script directly:
+Or (universal) grab the script directly:
 
 ```sh
 curl -o cetch.sh https://raw.githubusercontent.com/willcannotcode/cetch/main/cetch.sh
@@ -37,7 +84,7 @@ chmod +x cetch.sh
 ./cetch.sh
 ```
 
-Or just clone the repo:
+...or just clone the repo:
 
 ```sh
 git clone https://github.com/willcannotcode/cetch.git
@@ -45,51 +92,9 @@ cd cetch
 ./cetch.sh
 ```
 
-Put it somewhere on your `$PATH` (like `~/.local/bin`) if you want
-to run it as `cetch` from anywhere.
+**Put it somewhere on your `$PATH` (like `~/.local/bin`) if you want to run it as `cetch` from anywhere.**
 
-**On NixOS (flakes)**
-
-Either run it using nix:
-
-```
-nix run github:willcannotcode/cetch
-```
-
-Or install it system-wide by adding it to your inputs:
-
-```
-{
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-
-    # Add this input to your flake
-    cetch.url = "github:willcannotcode/cetch";
-  };
-
-  # example config of how to handle your outputs
-  outputs = { self, nixpkgs, cetch, ... }@inputs: {
-    nixosConfigurations.your-hostname = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      specialArgs = { inherit inputs; };
-      modules = [
-        ./configuration.nix
-      ];
-    };
-  };
-}
-```
-
-...Then in configuration.nix add:
-
-
-```
-{ pkgs, inputs, ... }: {
-  environment.systemPackages = [
-    inputs.cetch.packages.${pkgs.stdenv.hostPlatform.system}.default
-  ];
-}
-```
+---
 
 ## Usage
 **Usage:** `cetch.sh [options]`
@@ -135,6 +140,8 @@ Everything is an environment variable, so you can just add overrides to your she
 Anything else falls back to a generic Tux(ish) face colored from
 `/etc/os-release`'s `ANSI_COLOR`, so it still looks reasonable on distros
 that I haven't hardcoded.
+
+---
 
 ## Config file
 
