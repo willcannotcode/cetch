@@ -87,23 +87,22 @@ Or install it system-wide by adding it to your inputs:
 ```
 
 ## Usage
+**Usage:** `cetch.sh [options]`
 
-```
-Usage: cetch.sh [options]
+### Options
 
-Options:
-  -w, --width N      render as if the terminal were N columns wide
-      --accent       use terminal's accent color
-      --color HEX    use a specific color (#7aa2f7, 7aa2f7 or #7af)
-      --side [N]     place the logo to the left of the box, N extra
-                     columns clear of it (default 0)
-      --style STYLE  box corner style: rounded (default) or boxy
-      --no-logo      draw the box on its own
-      --no-color     monochrome output (--colour/--no-colour also work)
-      --no-icons     drop the Nerd Font glyphs (plain labels)
-      --list-distros print the logo names CETCH_DISTRO accepts
-  -h, --help         show this message
-  ```
+| Short | Flag & Arguments | Description |
+| :--- | :--- | :--- |
+| `-w` | `--width N` | Render as if the terminal were `N` columns wide |
+| | `--accent` | Use terminal's accent color |
+| | `--color HEX` | Use a specific color (`#7aa2f7`, `7aa2f7`, or `#7af`) |
+| | `--side [N]` | Place the logo to the left of the box, `N` extra columns clear of it (default 0) |
+| | `--style STYLE` | Box corner style: `rounded` (default) or `boxy` |
+| | `--no-logo` | Draw the box on its own |
+| | `--no-color` | Monochrome output (`--colour`/`--no-colour` also work) |
+| | `--no-icons` | Drop the Nerd Font glyphs (plain labels) |
+| | `--list-distros` | Print the logo names `CETCH_DISTRO` accepts |
+| `-h` | `--help` | Show this message |
 
 ## Configuration
 Everything is an environment variable, so you can just add overrides to your shell rc file.
