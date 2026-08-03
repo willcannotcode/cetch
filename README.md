@@ -2,12 +2,15 @@
 
 A small terminal fastfetch-esque tool, in a single bash script, all horizontally centered with dynamic sizing to avoid horrible line wraps.
 
-<img width="628" height="430" alt="image" src="https://github.com/user-attachments/assets/2b90fdf7-222f-4d3e-a963-bcd709e5e501" />
-<img width="840" height="308" alt="image" src="https://github.com/user-attachments/assets/0b67df72-2d63-4317-82b7-dd04583e3581" />
+<img width="910" height="916" alt="image" src="https://github.com/user-attachments/assets/a9ee84a6-8344-497f-bf41-e86009ecb11d" />
 
 ## Why?
 
 Most fetch tools show a huge logo and pretty verbose information, which looks great in a wide terminal but looks terrible in a narrow split (such as on niri). `cetch` aligns the info vertically, all stacked and centered, so it looks just as good in a 40-column slice as it does in a full width window.
+<details>
+  <summary>Example</summary>
+  <img width="1027" height="1018" alt="image" src="https://github.com/user-attachments/assets/3f1639b2-9686-40af-9ade-0cbbebc95f56" />
+</details>
 
 ## Requirements
 
