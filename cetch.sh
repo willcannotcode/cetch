@@ -6,7 +6,7 @@ shopt -s nullglob
 
 # ~/.config/cetch/cetch.conf: lines are either "CETCH_VAR=value" (applied
 # only if that variable isn't already set in the environment) or anything
-# else, which is tokenized and treated as if typed on the command line
+# else, which is treated as if typed in the terminal
 # (ahead of the real argv, so real flags still win).
 CONFIG_FILE=${HOME:-}/.config/cetch/cetch.conf
 CONFIG_ARGS=()
