@@ -7,6 +7,7 @@ A small terminal fastfetch-esque tool, in a single bash script, all horizontally
 *- See Examples/boxy for the config + ascii art*
 
 <img width="903" height="837" alt="image" src="https://github.com/user-attachments/assets/d219f77f-351e-49b8-bafc-522e9bc4baaa" />
+
 ## Why?
 
 Most fetch tools show a huge logo and pretty verbose information, which looks great in a wide terminal but looks terrible in a narrow split (such as on niri). `cetch` aligns the info vertically, all stacked and centered, so it looks just as good in a 40-column slice as it does in a full width window.
