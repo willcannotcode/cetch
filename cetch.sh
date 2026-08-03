@@ -6,7 +6,7 @@ shopt -s nullglob
 
 # ~/.config/cetch/cetch.conf: lines are either "CETCH_VAR=value" (applied
 # only if that variable isn't already set in the environment) or anything
-# else, which is treated as if typed in the terminal
+# else, which is tokenized and treated as if typed on the command line
 # (ahead of the real argv, so real flags still win).
 CONFIG_FILE=${HOME:-}/.config/cetch/cetch.conf
 CONFIG_ARGS=()
@@ -96,7 +96,7 @@ Options:
                       columns clear of it (default 0)
       --style STYLE   box corner style: rounded (default) or boxy
       --no-logo       draw the box on its own
-      --no-color      monochrome output
+      --no-color      monochrome output (--colour/--no-colour also work)
       --no-icons      drop the Nerd Font glyphs (plain labels)
       --list-distros  print the logo names CETCH_DISTRO accepts
   -h, --help          show this message
