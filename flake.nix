@@ -6,21 +6,23 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = { 
-    self,
-    nixpkgs,
-    flake-utils,
-  }:
-  flake-utils.lib.eachDefaultSystem (system:
-    let
-      pkgs = import nixpkgs { inherit system; };
-    in 
+  outputs =
     {
-      packages.default = pkgs.callPackage ./nix/package.nix { };
+      self,
+      nixpkgs,
+      flake-utils,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+      in
+      {
+        packages.default = pkgs.callPackage ./nix/package.nix { };
 
-      apps.default = flake-utils.lib.mkApp {
-        drv = self.packages.${system}.default;
-      };
-    }
-  );
+        apps.default = flake-utils.lib.mkApp {
+          drv = self.packages.${system}.default;
+        };
+      }
+    );
 }

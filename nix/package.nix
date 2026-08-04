@@ -7,16 +7,16 @@
   coreutils,
 }:
 
-  let
-   src = ../cetch.sh;
-   binName = "cetch";
-   deps = [
-     bash
-     ncurses
-     coreutils
-    ];
-  in
-  runCommand "${binName}"
+let
+  src = ../cetch.sh;
+  binName = "cetch";
+  deps = [
+    bash
+    ncurses
+    coreutils
+  ];
+in
+runCommand "${binName}"
   {
     nativeBuildInputs = [ makeWrapper ];
     meta = with lib; {
