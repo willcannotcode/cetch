@@ -58,7 +58,7 @@ DISK_MOUNT=${CETCH_DISK:-/}
 USE_ACCENT=0
 ACCENT_HEX=${CETCH_COLOR:-}
 
-DEFAULT_ROWS=user,kernel,os,wm,packages,disk
+DEFAULT_ROWS=user,kernel,os,wm,packages,disk,battery
 ROWS=${CETCH_ROWS:-$DEFAULT_ROWS}
 DISTROS='arch cachyos debian ubuntu fedora gentoo mint nixos opensuse void alpine manjaro macos linux'
 
@@ -88,6 +88,7 @@ PCI_IDS=
 
 TEMP_FILE=${CETCH_TEMP_ZONE:-/sys/class/thermal/thermal_zone0/temp}
 
+ICON_BATTERY="ϟ"
 ICON_CELLS=${CETCH_ICON_CELLS:-1}
 [[ $ICON_CELLS == +([0-9]) ]] || ICON_CELLS=1
 ((ICON_CELLS < 1)) && ICON_CELLS=1
@@ -279,6 +280,31 @@ load_theme() {
 		return 1
 		;;
 	esac
+}
+
+# battery info support for Mac and Linux:
+get_battery() {
+    # Linux
+    if [ -r /sys/class/power_supply/BAT0/capacity ]; then
+        printf "%s%% (%s)\n" \
+            "$(cat /sys/class/power_supply/BAT0/capacity)" \
+            "$(tr '[:upper:]' '[:lower:]' < /sys/class/power_supply/BAT0/status)"
+        return
+    fi
+
+    # macOS
+    if command -v pmset >/dev/null 2>&1; then
+        pmset -g batt | awk '
+            /InternalBattery/ {
+                gsub(";", "", $3)
+                gsub(";", "", $4)
+                print $3 " (" tolower($4) ")"
+            }
+        '
+        return
+    fi
+
+    echo "No Battery"
 }
 
 parse_args() {
@@ -1610,6 +1636,7 @@ add_row() {
 	kernel) row "$ICON_KERNEL" Kernel "$(get_kernel)" ;;
 	os) row "$ICON_OS" OS "$(get_os)" ;;
 	wm | wm/de | de) row "$ICON_WM" WM/DE "$(get_wm)" ;;
+	battery | batt) row "$ICON_BATTERY" Battery "$(get_battery)" ;;
 	packages | pkgs) row "$ICON_PKG" Packages "$(get_packages)" ;;
 	disk) row "$ICON_DISK" Disk "$(get_disk)" ;;
 	uptime) row "$ICON_UPTIME" Uptime "$(get_uptime)" ;;
