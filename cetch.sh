@@ -88,6 +88,7 @@ PCI_IDS=
 
 TEMP_FILE=${CETCH_TEMP_ZONE:-/sys/class/thermal/thermal_zone0/temp}
 
+ICON_BATTERY="ϟ"
 ICON_CELLS=${CETCH_ICON_CELLS:-1}
 [[ $ICON_CELLS == +([0-9]) ]] || ICON_CELLS=1
 ((ICON_CELLS < 1)) && ICON_CELLS=1
@@ -279,6 +280,66 @@ load_theme() {
 		return 1
 		;;
 	esac
+}
+
+# Return the right Nerd Font icon
+get_battery_icon() {
+    local percent=$1
+
+    # Make sure it's a valid number
+    if ! [[ "$percent" =~ ^[0-9]+$ ]]; then
+        printf "%s\n" "󰂑" # Unknown
+        return
+    fi
+
+    if (( percent >= 95 )); then printf "%s\n" "󰁹"
+    elif (( percent >= 90 )); then printf "%s\n" "󰂂"
+    elif (( percent >= 80 )); then printf "%s\n" "󰂁"
+    elif (( percent >= 70 )); then printf "%s\n" "󰂀"
+    elif (( percent >= 60 )); then printf "%s\n" "󰁿"
+    elif (( percent >= 50 )); then printf "%s\n" "󰁾"
+    elif (( percent >= 40 )); then printf "%s\n" "󰁽"
+    elif (( percent >= 30 )); then printf "%s\n" "󰁼"
+    elif (( percent >= 20 )); then printf "%s\n" "󰁻"
+    elif (( percent >= 10 )); then printf "%s\n" "󰁺"
+    else printf "%s\n" "󰂎"
+    fi
+}
+
+# Battery info support for mac and linux:
+get_battery() {
+    local percent=""
+    local status=""
+    local icon=""
+
+    # Linux
+    if [ -r /sys/class/power_supply/BAT0/capacity ]; then
+        percent=$(cat /sys/class/power_supply/BAT0/capacity)
+        status=$(tr '[:upper:]' '[:lower:]' < /sys/class/power_supply/BAT0/status)
+    
+    # macOS
+    elif command -v pmset >/dev/null 2>&1; then
+        # parsing
+        read -r percent status <<< $(pmset -g batt | awk '/InternalBattery/ {
+            gsub("%|;", "", $3)
+            gsub(";", "", $4)
+            print $3, tolower($4)
+        }')
+    fi
+
+    # Format and output if a battery was found
+    if [[ -n "$percent" ]]; then
+        icon=$(get_battery_icon "$percent")
+        
+        # Override with a charging icon if currently plugged in
+        if [[ "$status" == *"charging"* ]]; then
+            icon="󰂄"
+        fi
+
+        printf "%s %s%% (%s)\n" "$icon" "$percent" "$status"
+    else
+        printf "%s\n" "󰂎 No Battery"
+    fi
 }
 
 parse_args() {
@@ -1610,6 +1671,7 @@ add_row() {
 	kernel) row "$ICON_KERNEL" Kernel "$(get_kernel)" ;;
 	os) row "$ICON_OS" OS "$(get_os)" ;;
 	wm | wm/de | de) row "$ICON_WM" WM/DE "$(get_wm)" ;;
+	battery | batt) row "$ICON_BATTERY" Battery "$(get_battery)" ;;
 	packages | pkgs) row "$ICON_PKG" Packages "$(get_packages)" ;;
 	disk) row "$ICON_DISK" Disk "$(get_disk)" ;;
 	uptime) row "$ICON_UPTIME" Uptime "$(get_uptime)" ;;
