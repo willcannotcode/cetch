@@ -282,29 +282,64 @@ load_theme() {
 	esac
 }
 
-# battery info support for Mac and Linux:
+# Return the right Nerd Font icon
+get_battery_icon() {
+    local percent=$1
+
+    # Make sure it's a valid number
+    if ! [[ "$percent" =~ ^[0-9]+$ ]]; then
+        printf "%s\n" "󰂑" # Unknown
+        return
+    fi
+
+    if (( percent >= 95 )); then printf "%s\n" "󰁹"
+    elif (( percent >= 90 )); then printf "%s\n" "󰂂"
+    elif (( percent >= 80 )); then printf "%s\n" "󰂁"
+    elif (( percent >= 70 )); then printf "%s\n" "󰂀"
+    elif (( percent >= 60 )); then printf "%s\n" "󰁿"
+    elif (( percent >= 50 )); then printf "%s\n" "󰁾"
+    elif (( percent >= 40 )); then printf "%s\n" "󰁽"
+    elif (( percent >= 30 )); then printf "%s\n" "󰁼"
+    elif (( percent >= 20 )); then printf "%s\n" "󰁻"
+    elif (( percent >= 10 )); then printf "%s\n" "󰁺"
+    else printf "%s\n" "󰂎"
+    fi
+}
+
+# Battery info support for mac and linux:
 get_battery() {
+    local percent=""
+    local status=""
+    local icon=""
+
     # Linux
     if [ -r /sys/class/power_supply/BAT0/capacity ]; then
-        printf "%s%% (%s)\n" \
-            "$(cat /sys/class/power_supply/BAT0/capacity)" \
-            "$(tr '[:upper:]' '[:lower:]' < /sys/class/power_supply/BAT0/status)"
-        return
-    fi
-
+        percent=$(cat /sys/class/power_supply/BAT0/capacity)
+        status=$(tr '[:upper:]' '[:lower:]' < /sys/class/power_supply/BAT0/status)
+    
     # macOS
-    if command -v pmset >/dev/null 2>&1; then
-        pmset -g batt | awk '
-            /InternalBattery/ {
-                gsub(";", "", $3)
-                gsub(";", "", $4)
-                print $3 " (" tolower($4) ")"
-            }
-        '
-        return
+    elif command -v pmset >/dev/null 2>&1; then
+        # parsing
+        read -r percent status <<< $(pmset -g batt | awk '/InternalBattery/ {
+            gsub("%|;", "", $3)
+            gsub(";", "", $4)
+            print $3, tolower($4)
+        }')
     fi
 
-    echo "No Battery"
+    # Format and output if a battery was found
+    if [[ -n "$percent" ]]; then
+        icon=$(get_battery_icon "$percent")
+        
+        # Override with a charging icon if currently plugged in
+        if [[ "$status" == *"charging"* ]]; then
+            icon="󰂄"
+        fi
+
+        printf "%s %s%% (%s)\n" "$icon" "$percent" "$status"
+    else
+        printf "%s\n" "󰂎 No Battery"
+    fi
 }
 
 parse_args() {
