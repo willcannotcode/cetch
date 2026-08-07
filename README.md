@@ -178,6 +178,7 @@ your system prints `unknown` rather than disappearing.
 | `kernel` | | kernel release |
 | `os` | | pretty name from `/etc/os-release` |
 | `wm` | `wm/de`, `de` | window manager / desktop |
+| `battery` | `batt` | battery percentage, charging status, and dynamic icon |
 | `packages` | `pkgs` | package counts per manager |
 | `disk` | | used / total and percent for `CETCH_DISK` |
 | `uptime` | | how long the box has been up |
