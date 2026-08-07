@@ -88,7 +88,7 @@ PCI_IDS=
 
 TEMP_FILE=${CETCH_TEMP_ZONE:-/sys/class/thermal/thermal_zone0/temp}
 
-ICON_BATTERY="ϟ"
+ICON_BATTERY="󰁹"
 ICON_CELLS=${CETCH_ICON_CELLS:-1}
 [[ $ICON_CELLS == +([0-9]) ]] || ICON_CELLS=1
 ((ICON_CELLS < 1)) && ICON_CELLS=1
@@ -181,7 +181,7 @@ Environment:
                       user,kernel,os,wm,packages,disk); choose from
                       user, kernel, os, wm, packages, disk, uptime,
                       shell, memory, swap, cpu, cpufreq, gpu, temp, ip,
-                      resolution, terminal, load, procs, init
+                      resolution, terminal, load, procs, init, battery
   CETCH_ICON_CELLS=2  if your terminal draws Nerd Font icons two cells wide
   CETCH_TITLE=text    box title (default "System Info")
   CETCH_MIN_WIDTH=n   minimum box width (default 42)
@@ -336,9 +336,10 @@ get_battery() {
             icon="󰂄"
         fi
 
-        printf "%s %s%% (%s)\n" "$icon" "$percent" "$status"
+        # Use a pipe to separate the icon from the text
+        printf "%s|%s%% (%s)\n" "$icon" "$percent" "$status"
     else
-        printf "%s\n" "󰂎 No Battery"
+        printf "%s|No Battery\n" "󰂎"
     fi
 }
 
@@ -1671,7 +1672,18 @@ add_row() {
 	kernel) row "$ICON_KERNEL" Kernel "$(get_kernel)" ;;
 	os) row "$ICON_OS" OS "$(get_os)" ;;
 	wm | wm/de | de) row "$ICON_WM" WM/DE "$(get_wm)" ;;
-	battery | batt) row "$ICON_BATTERY" Battery "$(get_battery)" ;;
+	battery | batt)
+		local batt_raw batt_icon batt_val
+		batt_raw=$(get_battery)
+		if [[ "$batt_raw" == *\|* ]]; then
+			batt_icon="${batt_raw%%|*}"
+			batt_val="${batt_raw#*|}"
+		else
+			batt_icon="$ICON_BATTERY"
+			batt_val="$batt_raw"
+		fi
+		row "$batt_icon" Battery "$batt_val"
+		;;
 	packages | pkgs) row "$ICON_PKG" Packages "$(get_packages)" ;;
 	disk) row "$ICON_DISK" Disk "$(get_disk)" ;;
 	uptime) row "$ICON_UPTIME" Uptime "$(get_uptime)" ;;
