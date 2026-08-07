@@ -58,7 +58,7 @@ DISK_MOUNT=${CETCH_DISK:-/}
 USE_ACCENT=0
 ACCENT_HEX=${CETCH_COLOR:-}
 
-DEFAULT_ROWS=user,kernel,os,wm,packages,disk,battery
+DEFAULT_ROWS=user,kernel,os,wm,packages,disk
 ROWS=${CETCH_ROWS:-$DEFAULT_ROWS}
 DISTROS='arch cachyos debian ubuntu fedora gentoo mint nixos opensuse void alpine manjaro macos linux'
 
