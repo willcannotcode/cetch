@@ -5,9 +5,7 @@
   bash,
   ncurses,
   coreutils,
-}:
-
-let
+}: let
   src = ../cetch.sh;
   binName = "cetch";
   deps = [
@@ -16,15 +14,15 @@ let
     coreutils
   ];
 in
-runCommand "${binName}"
+  runCommand "${binName}"
   {
-    nativeBuildInputs = [ makeWrapper ];
+    nativeBuildInputs = [makeWrapper];
     meta = with lib; {
       mainProgram = "cetch";
       description = "A small terminal fastfetch-esque tool, in a single bash script, all horizontally centered.";
       homepage = "https://github.com/willcannotcode/cetch";
       license = licenses.mit;
-      platforms = platforms.linux;
+      platforms = platforms.all;
     };
   }
   ''

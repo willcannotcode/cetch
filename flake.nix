@@ -1,28 +1,39 @@
 {
-  description = "A small terminal fastfetch-eque tool, in a single bash script, all horizontally centered.";
+  description = "A small terminal fastfetch-esque tool, in a single bash script, all horizontally centered.";
 
   inputs = {
-    flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs =
-    {
-      self,
-      nixpkgs,
-      flake-utils,
-    }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-      in
-      {
-        packages.default = pkgs.callPackage ./nix/package.nix { };
+  outputs = {
+    self,
+    nixpkgs,
+    ...
+  }: let
+    inherit (nixpkgs) lib;
 
-        apps.default = flake-utils.lib.mkApp {
-          drv = self.packages.${system}.default;
-        };
-      }
-    );
+    systems = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "aarch64-darwin"
+    ];
+
+    forEachSystem = perSystem:
+      lib.genAttrs systems (
+        system:
+          perSystem {
+            pkgs = nixpkgs.legacyPackages.${system};
+            inherit system;
+          }
+      );
+  in {
+    overlays.default = final: prev: {
+      cetch = final.callPackage ./nix/package.nix {};
+    };
+
+    packages = forEachSystem ({pkgs, ...}: rec {
+      cetch = pkgs.callPackage ./nix/package.nix {};
+      default = cetch;
+    });
+  };
 }
