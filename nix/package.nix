@@ -6,7 +6,6 @@
   ncurses,
   coreutils,
 }:
-
 let
   src = ../cetch.sh;
   binName = "cetch";
@@ -24,7 +23,7 @@ runCommand "${binName}"
       description = "A small terminal fastfetch-esque tool, in a single bash script, all horizontally centered.";
       homepage = "https://github.com/willcannotcode/cetch";
       license = licenses.mit;
-      platforms = platforms.linux;
+      platforms = platforms.all;
     };
   }
   ''
