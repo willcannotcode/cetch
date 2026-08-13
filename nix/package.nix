@@ -5,7 +5,8 @@
   bash,
   ncurses,
   coreutils,
-}: let
+}:
+let
   src = ../cetch.sh;
   binName = "cetch";
   deps = [
@@ -14,9 +15,9 @@
     coreutils
   ];
 in
-  runCommand "${binName}"
+runCommand "${binName}"
   {
-    nativeBuildInputs = [makeWrapper];
+    nativeBuildInputs = [ makeWrapper ];
     meta = with lib; {
       mainProgram = "cetch";
       description = "A small terminal fastfetch-esque tool, in a single bash script, all horizontally centered.";
