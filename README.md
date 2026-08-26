@@ -81,7 +81,6 @@ Everything else is read straight out of `/proc` and `/sys`, so there are no othe
 
 **On Arch (or anything with an AUR helper):**
 
-*Please note that the AUR is down because of the massive amounts of malware being pushed into it, so the aur package is stuck at v1.2.0 until this gets resolved*
 ```
 yay -Sy cetch
 ```
